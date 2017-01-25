@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+{% from "_formhelpers.html" import render_field %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Select Reactor</title>
+</head>
+<body>
+<form method=post>
+  <dl>
+    {{ render_field(form.reactor_no) }}
+    {{ render_field(form.email) }}
+    {{ render_field(form.IP) }}
+    {{ render_field(form.port) }}
+  </dl>
+  <p><input type=submit value=Select>
+</form>
+{% block body %}{% endblock %}
+</body>
+</html>
+
+<script type=text/javascript src="{{
+  url_for('static', filename='jquery.js') }}"></script>
+<script>
+// TODO: Code here to auto update what is displayed in other fields based off of reactor selection
+</script>

@@ -1,0 +1,41 @@
+<!doctype html>
+<! TODO: Re-write w/ formhelpers>
+<! TODO: Figure out how to handle multiple form submissions>
+<! TODO: Pretty formatting + CSS>
+<title>Hello from Flask</title>
+<form method="POST" action="/register">
+    <div>{{ pH_stat.control_on.label }}: {{ pH_stat.control_on }}</div>
+    <p><input type="submit" value="send_control_status"></p>
+</form>
+
+<form method="POST" action="/register">
+    <div>{{ pH_manual.acid_on.label }}: {{ pH_manual.acid_on }}</div>
+    <div>{{ pH_manual.base_on.label }}: {{ pH_manual.base_on }}</div>
+    <p><input type="submit" value="send_manual"></p>
+</form>
+
+<form method="POST" action="/register">
+    <div>{{ pH_auto.pH_delay.label }}: {{ pH_auto.pH_delay }}</div>
+    <div>{{ pH_auto.pH_setpt.label }}: {{ pH_auto.pH_setpt }}</div>
+    <div>{{ pH_auto.pH_tol.label }}: {{ pH_auto.pH_tol }}</div>
+    <p><input type="submit" value="send_auto"></p>
+</form>
+
+<script type=text/javascript src="{{
+  url_for('static', filename='jquery.js') }}"></script>
+<script>
+$(document).ready(function(){
+    $("#control_on").click(function(){
+        if ($(this).is(":checked")){
+           $("#acid_on").attr("disabled", true);
+           $("#base_on").attr("disabled", true);
+
+        }
+        else{
+           $("#acid_on").attr("disabled", false);
+           $("#base_on").attr("disabled", false);
+        }
+    });
+});
+
+</script>
