@@ -1,24 +1,27 @@
 <!doctype html>
-<! TODO: Re-write w/ formhelpers>
-<! TODO: Figure out how to handle multiple form submissions>
-<! TODO: Pretty formatting + CSS>
-<title>Hello from Flask</title>
-<form method="POST" action="/register">
-    <div>{{ pH_stat.control_on.label }}: {{ pH_stat.control_on }}</div>
-    <p><input type="submit" value="send_control_status"></p>
+<!-- TODO: Figure out how to handle multiple form submissions-->
+<!-- TODO: Pretty formatting + CSS-->
+{% from "_formhelpers.html" import render_field %}
+<title>Reactor 1 Control Panel</title>
+<body>
+<form method=post>
+    {{ pH_switch.csrf_token }}
+    {{ render_field(pH_switch.control_on) }}
+    {{ pH_switch.submit }}
+</form>
+<form method="POST">
+    {{ pH_manual.csrf_token }}
+    {{ render_field(pH_manual.acid_on) }}
+    {{ render_field(pH_manual.base_on) }}
+    {{ pH_manual.submit }}
 </form>
 
-<form method="POST" action="/register">
-    <div>{{ pH_manual.acid_on.label }}: {{ pH_manual.acid_on }}</div>
-    <div>{{ pH_manual.base_on.label }}: {{ pH_manual.base_on }}</div>
-    <p><input type="submit" value="send_manual"></p>
-</form>
-
-<form method="POST" action="/register">
-    <div>{{ pH_auto.pH_delay.label }}: {{ pH_auto.pH_delay }}</div>
-    <div>{{ pH_auto.pH_setpt.label }}: {{ pH_auto.pH_setpt }}</div>
-    <div>{{ pH_auto.pH_tol.label }}: {{ pH_auto.pH_tol }}</div>
-    <p><input type="submit" value="send_auto"></p>
+<form method="POST">
+    {{ pH_auto.csrf_token }}
+    {{ render_field(pH_auto.pH_delay) }}
+    {{ render_field(pH_auto.pH_setpt) }}
+    {{ render_field(pH_auto.pH_tol) }}
+    {{ pH_auto.submit }}
 </form>
 
 <script type=text/javascript src="{{
