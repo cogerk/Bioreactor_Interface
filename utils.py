@@ -7,27 +7,36 @@ Jan 25 2017
 # TODO: cRIO side- Preface w/ Reactor No?
 # TODO: cRIO side- multiply delay by 1000 in labview
 # TODO: cRIO side- switch to _Status
+# TODO: cRIO side- ditch the "write?" command in get requests
 import customerrs as cust
 
 
+def get_inputs(loop, action):
+    return cust.loopdict[loop][action]
+
+
+
+def get_submitted_vals(form):
+    for entry in form:
+        if entry is not 'submit':
+            print(entry)
+    return
+
+
 def build_url(ip, port, reactorno, loop, action, values=[]):
-    if loop not in cust.LOOPS.keys():
+    if loop not in cust.loopdict.keys():
         raise cust.InvalidAction
     else:
         r_name = 'R'+str(reactorno)
         vi_to_run = r_name+loop+'Control_'+action
-        if action not in cust.ACTIONS.keys():
+        if action not in cust.ACTIONS:
             raise cust.InvalidAction
-        elif action is 'Manual':
-            params = cust.LOOPS[loop][0]
-        elif action is 'SetParams':
-            params = cust.LOOPS[loop][1]
-        elif action is 'Switch':
-            params=[loop+'ControlOn']
         else:
-            params = []
+            params = cust.LOOPS[loop][action]
+            print(params)
         if len(params) is not len(values):
-            raise cust.InvalidValue
+            raise cust.InvalidValue('Expected '+str(len(params))+
+                                    ' inputs but got '+str(len(values)))
         # TODO: Do values match types?
         else:
             command = '?'
@@ -42,4 +51,4 @@ def build_url(ip, port, reactorno, loop, action, values=[]):
     url = 'http://'+ip+':'+str(port)+'/'+webservice+'/'+vi_to_run+command
     return url
 
-# test = build_url('128.208.236.57', 8001, 1, 'pH', 'Status')
+#test = build_url('128.208.236.57', 8001, 1, 'pH', 'Switch', )

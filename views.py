@@ -1,13 +1,17 @@
 from flask_wtf import Form
+from wtforms import StringField, FloatField, BooleanField, \
+    SelectField, IntegerField, SubmitField
 from flask import Flask, render_template, request, redirect, flash, url_for
-from forms import Settings, pHSwitch, pHManual, pHAuto
+from forms import Settings, build_forms
 import customerrs as cust
+import utils
 
 app = Flask(__name__)
 app.secret_key = 'w1nkl3r!'
 
 @app.route('/', methods=['GET', 'POST'])
 def select_reactor():
+    test=1
     form = Settings()
     if form.validate_on_submit():
         #TODO: Flash raises error
@@ -19,24 +23,26 @@ def select_reactor():
 
 @app.route('/R1', methods=['GET', 'POST'])
 def R1():
-    #TODO: Finish building this guy out
-    pH_switch_form = pHSwitch(prefix='Switch')
-    pH_manual_form = pHManual(prefix='Manual')
-    pH_auto_form = pHAuto(prefix='SetParams')
-    if pH_switch_form.validate_on_submit() and pH_switch_form.submit.data:
-        action='Switch'
+    #TODO: generalize for all reactors
+    ip = '128.208.236.57'
+    port = 8001
+    form_dict = build_forms()
+    if request.method == 'POST':
+        utils.get_submitted_vals(request.form)
+        #get_url = utils.build_url(ip,port,1,loop,action)
+        #print(get_url)
+    #if pH_switch_form.validate_on_submit() and pH_switch_form.submit.data:
+        reactorno = 1
+        action = 'Switch'
+        ip = ip
+        port = port
+        loop = 'pH'
+        #test = utils.build_url('128.208.236.57', 8001, 1, 'pH', 'Status',
+        #                 pH_switch_form.control_on.data)
     #TODO: pass to URL Builder
-    if pH_manual_form.validate_on_submit and pH_manual_form.submit.data:
-        action='Manual'
-    if pH_auto_form.validate_on_submit and pH_auto_form.submit.data:
-        action='SetParams'
-    #TODO: Remove submit button and post on click
-        #pH_switch_form.control_on
     return render_template('R1.html',
-                           pH_switch=pH_switch_form,
-                           pH_manual=pH_manual_form,
-                           pH_auto=pH_auto_form)
-
+                           form_dict=form_dict,
+                           all_actions=cust.ACTIONS)
 
 @app.route('/R1/<status>')
 def status():

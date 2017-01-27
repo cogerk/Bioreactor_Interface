@@ -1,29 +1,5 @@
 # Define Constants
-ACTIONS = ['Switch',
-           'Status',
-           'Manual',
-           'SetParams']
-SBR_PUMPS = ['Effluent Pump', 'Gas Pump', 'Water Pump', 'Media Pump']
-SBR_PHASES = ['Anaerobic Feed', 'Purge', 'Aerated Feed', 'Aerate', 'Settle',
-                  'Decant', 'Idle']
-LOOPS = {'pH': [['AcidPump', 'BasePump'],
-                ['pHDelay_In', 'pH4Tol_In', 'pH4SetPt_In']],
-        'DO': [['Air', 'N2'],
-               ['R1DOTol_In', 'R1AirGain_In', 'R1N2Gain_In', 'R1DOSetPt_In']],
-        'NH4': [['VFDFlowrate'],
-                ['VFDGain_In', 'NH4Tol_In', 'NH4SetPt_In']],
-        'SBR': [['Write', 'CommandToPump''Pump'],
-                ['Write', 'TimeToWrite', 'Phase']]}
-LOOP_DEFAULTS = {'pH': [[False, False],
-                        [3.0, 0.1, 7.0]],
-                 'DO': [[0.0, 0.0],
-                        [0.05, 5000.0, 1000.0, 0.35]],
-                 'NH4': [[0.0],
-                         [100.0, 0.14, 0.01]],
-                 'SBR': [[False, False, SBR_PUMPS[0]],
-                         [False, 0, 'Aerate']]}
-
-
+import collections
 class InvalidAction(Exception):
     pass
 
@@ -34,3 +10,50 @@ class InvalidLoop(Exception):
 
 class InvalidValue(Exception):
     pass
+
+ACTIONS = ['Switch',
+           'Status',
+           'Manual',
+           'SetParams']
+
+SBR_PUMPS = [('Effluent', 'Effluent Pump'),
+             ('Gas', 'Gas Pump'),
+             ('Water', 'Water Pump'),
+             ('Media', 'Media Pump')]
+SBR_PHASES = [('Anaerobic', 'Anaerobic Feed'),
+              ('Purge', 'Purge'),
+              ('Aerated_Feed', 'Aerated Feed'),
+              ('Aerate', 'Aerate'),
+              ('Settle', 'Settle'),
+              ('Decant', 'Decant'),
+              ('Idle', 'Idle')]
+LOOPS = ['pH', 'DO', 'NH4', 'SBR']
+PH_MANUAL = {'AcidPump': False, 'BasePump': False}
+PH_SETPARAMS = {'pHDelay_In': 3.0, 'pHTol_In': 0.1, 'pHSetPt_In': 7.0}
+DO_MANUAL = {'Air': 0.0, 'N2': 0.0}
+DO_SETPARAMS = {'R1DOTol_In': 0.05, 'R1AirGain_In': 5000.0,
+                'R1N2Gain_In': 1000.0, 'R1DOSetPt_In': 0.35}
+NH4_MANUAL = {'VFDFlowrate': 0.0}
+NH4_SETPARAMS = {'VFDGain_In': 100.0, 'NH4Tol_In': 0.14,
+                 'NH4SetPt_In': 0.01}
+SBR_MANUAL = {'Write': False, 'CommandToPump': False,
+              'Pump': SBR_PUMPS}
+SBR_SETPARAMS = {'Write': False, 'TimeToWrite': 0.0,
+                               'Phase': SBR_PHASES}
+
+def create_masterdict():
+    loopdict={}
+    for loop in LOOPS:
+        loopdict[loop]={}
+        for action in ACTIONS:
+            if action == 'Status':
+                loopdict[loop][action] = None
+            elif action == 'Switch':
+                loopdict[loop][action] = False
+            else:
+                add_dict=(eval(str.upper(loop+'_'+action)))
+                loopdict[loop][action] = add_dict
+
+    return loopdict
+
+loopdict = create_masterdict()
