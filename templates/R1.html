@@ -3,40 +3,70 @@
 {% from "_formhelpers.html" import render_field %}
 <title>Reactor 1 Control Panel</title>
 <body>
-<div class="loop">
-	{% for c_loop in form_dict %}
-    <div class="action" >
-        {% for c_action in all_actions %}
-            <form id="{{ c_loop+'_'+'c_action' }}" method="post">
+    <div class="messages"></div>
+    <!-- This block displays status of last command sent -->
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul class=flashes>
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+    </div>
+    <div class="loop">
+        <!-- Every Control Loop (i.e. pH, DO, SBR) gets it's own section -->
+        {% for c_loop in all_loops %}
+        <div class="action">
+            <!-- Makes div for every control loop's on/off switch, parameter settings, or manual controls -->
+            {% for c_action in all_actions %}
                 {% if c_action != 'Status'  %}
-                    {% for subfield in form_dict[c_loop][c_action]%}
-                        {{form_dict[c_loop][c_action].csrf_token}}
-                        {% if (subfield.type != 'SubmitField') and (subfield.type != 'CSRFTokenField') %}
-                            {{ render_field(subfield) }}
-                        {% endif %}
-                    {% endfor %}
-                    {{ form_dict[c_loop][c_action].submit }}
+                <form id="{{ c_loop+'_'+c_action }}" method="post">
+                    <!-- Renders each field in form as defined in the form dictionary -->
+                        {% for subfield in form_dict[c_loop][c_action]%}
+                            {{form_dict[c_loop][c_action].csrf_token}}
+                            {% if (subfield.type != 'SubmitField') and (subfield.type != 'CSRFTokenField') %}
+                                {{ render_field(subfield) }}
+                            {% endif %}
+                        {% endfor %}
+                        {{ form_dict[c_loop][c_action].submit }}
+                </form>
                 {% endif %}
-            </form>
+            {% endfor %}
+        </div>
         {% endfor %}
     </div>
-	{% endfor %}
-</div>
-<--! TODO: Disable manual controls when control is on for each loop -->
+</body>
+
+
 <script type=text/javascript src="{{
   url_for('static', filename='jquery.js') }}"></script>
 <script>
 $(document).ready(function(){
-    $("#pH_Switch-control_on").click(function(){
-        $('#pH_Switch').submit();
-    });
-    if ($("#pH_Switch-control_on").is(":checked")){
-           $("#pH_Manual-AcidPump").attr("disabled", true);
-           $("#pH_Manual-BasePump").attr("disabled", true);
+    // This function enables/disables manual controls if control switch is off/on
+    $("*[id*=control_on]:visible").each(function(){  // loop through control loop switch
+        var id = '#'
+        var controlstr = this.id;
+        var formstr = controlstr.substring(0,controlstr.indexOf('_'));
+        var manformstr = formstr.concat('_Manual * '); // build id of manual control form id given a loop switch id
+        if ($(this).is(":checked")){
+        // if control is on
+            $(id.concat(manformstr)).filter(':input').each(function(){ // loop through manual control form fields
+                // disable all manual control form fields
+                $(this).attr("disabled", true)
+            });
         }
         else{
-           $("#pH_Manual-AcidPump").attr("disabled", false);
-           $("#pH_Manual-BasePump").attr("disabled", false);
-        }
-});
+            $(id.concat(manformstr)).filter(':input').each(function(){
+                // otherwise enable all manual control form fields
+                $(this).attr("disabled", false)
+            });
+        };
+    });
+    // This function automatically send the control on/off function if any control loop switch is clicked.
+    $("*[id*=control_on]:visible").click(function(event){ //
+        $(event.target.form).submit();
+        });
+    });
 </script>

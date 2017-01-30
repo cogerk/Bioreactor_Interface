@@ -1,5 +1,4 @@
-# Define Constants
-import collections
+# Define Custom Errors
 class InvalidAction(Exception):
     pass
 
@@ -11,18 +10,20 @@ class InvalidLoop(Exception):
 class InvalidValue(Exception):
     pass
 
+
+# Define Constants
 ACTIONS = ['Switch',
            'Status',
            'Manual',
            'SetParams']
 
-SBR_PUMPS = [('Effluent', 'Effluent Pump'),
-             ('Gas', 'Gas Pump'),
-             ('Water', 'Water Pump'),
-             ('Media', 'Media Pump')]
-SBR_PHASES = [('Anaerobic', 'Anaerobic Feed'),
+SBR_PUMPS = [('Effluent%20Pump', 'Effluent Pump'),
+             ('Gas%20Pump', 'Gas Pump'),
+             ('Water%20Pump', 'Water Pump'),
+             ('Media%20Pump', 'Media Pump')]
+SBR_PHASES = [('Anaerobic%20Feed', 'Anaerobic Feed'),
               ('Purge', 'Purge'),
-              ('Aerated_Feed', 'Aerated Feed'),
+              ('Aerated%20Feed', 'Aerated Feed'),
               ('Aerate', 'Aerate'),
               ('Settle', 'Settle'),
               ('Decant', 'Decant'),
@@ -36,24 +37,25 @@ DO_SETPARAMS = {'R1DOTol_In': 0.05, 'R1AirGain_In': 5000.0,
 NH4_MANUAL = {'VFDFlowrate': 0.0}
 NH4_SETPARAMS = {'VFDGain_In': 100.0, 'NH4Tol_In': 0.14,
                  'NH4SetPt_In': 0.01}
-SBR_MANUAL = {'Write': False, 'CommandToPump': False,
+SBR_MANUAL = {'CommandToPump': False,
               'Pump': SBR_PUMPS}
-SBR_SETPARAMS = {'Write': False, 'TimeToWrite': 0.0,
-                               'Phase': SBR_PHASES}
+SBR_SETPARAMS = {'TimeToWrite': 0.0,
+                 'Phase': SBR_PHASES}
+
 
 def create_masterdict():
-    loopdict={}
+    dynamic_loopdict = {}
     for loop in LOOPS:
-        loopdict[loop]={}
+        dynamic_loopdict[loop] = {}
         for action in ACTIONS:
             if action == 'Status':
-                loopdict[loop][action] = None
+                dynamic_loopdict[loop][action] = None
             elif action == 'Switch':
-                loopdict[loop][action] = False
+                dynamic_loopdict[loop][action] = {'control_on': False}
             else:
-                add_dict=(eval(str.upper(loop+'_'+action)))
-                loopdict[loop][action] = add_dict
+                add_dict = (eval(str.upper(loop+'_'+action)))
+                dynamic_loopdict[loop][action] = add_dict
+    return dynamic_loopdict
 
-    return loopdict
 
 loopdict = create_masterdict()

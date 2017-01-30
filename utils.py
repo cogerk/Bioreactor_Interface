@@ -4,10 +4,6 @@ Written By: Kathryn Cogert
 Jan 25 2017
 """
 
-# TODO: cRIO side- Preface w/ Reactor No?
-# TODO: cRIO side- multiply delay by 1000 in labview
-# TODO: cRIO side- switch to _Status
-# TODO: cRIO side- ditch the "write?" command in get requests
 import customerrs as cust
 
 
@@ -15,15 +11,30 @@ def get_inputs(loop, action):
     return cust.loopdict[loop][action]
 
 
-
 def get_submitted_vals(form):
-    for entry in form:
-        if entry is not 'submit':
-            print(entry)
-    return
+    commands_forms_dict = {}
+    for idx, entry in enumerate(form):
+        if idx == 0:
+            loop = entry[0:entry.index('_')]
+            action = entry[entry.index('_')+1:entry.index('-')]
+            all_commands_dict = get_inputs(loop,action)
+        if 'submit' not in entry and 'csrf_token' not in entry:
+            command = entry[entry.index('-')+1:]
+            commands_forms_dict[command] = form[entry]
+    for each in commands_forms_dict:
+        if type(all_commands_dict[each]) == bool:
+            if each not in all_commands_dict:
+                all_commands_dict[each] = False
+            else:
+                all_commands_dict[each] = True
+        if type(all_commands_dict[each]) == list:
+            all_commands_dict[each] = commands_forms_dict[each]
+        else:
+            all_commands_dict[each] = all_commands_dict[each]
+    return loop, action, all_commands_dict
 
 
-def build_url(ip, port, reactorno, loop, action, values=[]):
+def build_url(ip, port, reactorno, loop, action, params=[]):
     if loop not in cust.loopdict.keys():
         raise cust.InvalidAction
     else:
@@ -32,23 +43,24 @@ def build_url(ip, port, reactorno, loop, action, values=[]):
         if action not in cust.ACTIONS:
             raise cust.InvalidAction
         else:
-            params = cust.LOOPS[loop][action]
-            print(params)
-        if len(params) is not len(values):
-            raise cust.InvalidValue('Expected '+str(len(params))+
-                                    ' inputs but got '+str(len(values)))
-        # TODO: Do values match types?
-        else:
-            command = '?'
-            for idx, param in enumerate(params):
-                print(type(values[idx]))
-                if type(values[idx]) is bool:
-                    values[idx] = str(int(values[idx]))
-                command = command + param + '=' + str(values[idx]) +'&'
-            command = command[:-1]
-    # TODO: cRIO side- All reactor references to R1 instead of reactor 1
-    webservice = 'Reactor'+str(reactorno)+'_Webservice'
-    url = 'http://'+ip+':'+str(port)+'/'+webservice+'/'+vi_to_run+command
-    return url
+            default_params = cust.loopdict[loop][action]
+        if len(default_params) is not len(params):
+            raise cust.InvalidValue('Expected '+str(len(default_params)) +
+                                    ' inputs but got '+str(len(params)))
+        command = '?'
+        for idx, each in enumerate(default_params):
+            if isinstance(params[each], type(default_params[each])):
+                if type(params[each]) is bool:
+                    val = int(params[each])
+                else:
+                    val = params[each]
+                command = command + each + '=' + str(val) + '&'
+            else:
+                raise cust.InvalidValue('Expected ' + each +
+                                        ' to be datatype ' +
+                                        type(default_params[each]) + ' got ' +
+                                        type(params[each]))
 
-#test = build_url('128.208.236.57', 8001, 1, 'pH', 'Switch', )
+        command = command[:-1]
+    url = 'http://'+ip+':'+str(port)+'/'+r_name+'/'+vi_to_run+command
+    return url
