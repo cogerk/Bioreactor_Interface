@@ -55,6 +55,12 @@ SBR_PHASES = [('Anaerobic%20Feed', 'Anaerobic Feed'), # Media + Water pumps on
               ('Decant', 'Decant'),  # Effluent pump on
               ('Idle', 'Idle')]  # All pumps off
 
+# List of signals being measured in cRIO
+SIGNALS = ['pH', 'DO', 'NH4', 'ORP', 'VFD Signal', 'VFD RPM', 'Air', 'N2']
+CONSTANTS = ['Data Smooth Time',
+             'ISE Na Correction Factor',
+             'R1 Na Concentration']
+
 # List of control loops
 LOOPS = ['pH', 'DO', 'NH4', 'SBR']
 

@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, flash, url_for
-from forms import Settings, build_forms
+from forms import Settings, CalConstantForm, build_forms
 import customerrs as cust
 import utils
 
@@ -28,10 +28,8 @@ def R1():
     port = 8001
     loop_form_dict = build_forms()
     if request.method == 'POST':
-        status = utils.submit_to_reactor(ip, port, 1, request.form)
+        status = utils.submit_command_to_reactor(ip, port, 1, request.form)
         flash(status)
-
-
     return render_template('R1.html',
                            loop_form_dict=loop_form_dict,
                            all_actions=cust.ACTIONS,
@@ -42,10 +40,8 @@ def R1():
 def calconstants():
     ip = '128.208.236.57'
     port = 8001
-    cal_constants_form_dict = build_cal_constant_form()
+    form = CalConstantForm
     if request.method == 'POST':
-        status = utils.submit_to_reactor(ip, port, 1, request.form)
-        flash(status)
+        print(request.form)
     return render_template('CalConstants.html',
-                           forms=cal_constants_form_dict,
-                           all_loops=cust.LOOPS)
+                           forms=form)

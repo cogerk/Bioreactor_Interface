@@ -5,6 +5,10 @@
     <title>Change Reactor 1 Calibration Constants</title>
 </head>
 <body>
-
+  {{ form.csrf_token }}
+    {{ render_field(form.signal) }}
+    {{ render_field(form.slope) }}
+    {{ render_field(form.intercept) }}
+  <p><input type=submit value=Select></p>
 </body>
 </html>

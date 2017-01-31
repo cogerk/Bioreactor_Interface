@@ -90,7 +90,7 @@ def build_url(ip, port, reactorno, loop, action, params={}):
     return url
 
 
-def submit_to_reactor(ip, port, reactorno, submitted_form):
+def submit_command_to_reactor(ip, port, reactorno, submitted_form):
     """
     Submits get request to reactor and returns status
     :param ip: str, the cRIO IP address
@@ -110,6 +110,7 @@ def submit_to_reactor(ip, port, reactorno, submitted_form):
             status = terminal.find('Value').text
     return status
 
+"""
 def get_current_vals(ip, port, reactorno, loop):
     get_url = build_url(ip, port, reactorno, loop, 'Status')
     print(get_url)
@@ -120,3 +121,4 @@ def get_current_vals(ip, port, reactorno, loop):
 ip = '128.208.236.57'
 port = 8001
 print(get_current_vals(ip, port, 1, 'pH'))
+"""
