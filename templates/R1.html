@@ -24,18 +24,23 @@
                 {% if c_action != 'Status'  %}
                 <form id="{{ c_loop+'_'+c_action }}" method="post">
                     <!-- Renders each field in form as defined in the form dictionary -->
-                        {% for subfield in form_dict[c_loop][c_action]%}
-                            {{form_dict[c_loop][c_action].csrf_token}}
+                        {% for subfield in loop_form_dict[c_loop][c_action]%}
+                            {{loop_form_dict[c_loop][c_action].csrf_token}}
                             {% if (subfield.type != 'SubmitField') and (subfield.type != 'CSRFTokenField') %}
                                 {{ render_field(subfield) }}
                             {% endif %}
                         {% endfor %}
-                        {{ form_dict[c_loop][c_action].submit }}
+                        {{ loop_form_dict[c_loop][c_action].submit }}
                 </form>
                 {% endif %}
             {% endfor %}
         </div>
         {% endfor %}
+    </div>
+    <div class = "Constants">
+        <a href="/R1/CalConstants.html">Change Reactor Calibration Constants</a>
+        <br>
+        <a href="/R1/Constants.html">Change Other Reactor Constants</a>
     </div>
 </body>
 
