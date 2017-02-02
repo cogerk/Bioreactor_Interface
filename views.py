@@ -1,7 +1,9 @@
 from flask import Flask, render_template, request, redirect, flash, url_for
-from forms import Settings, CalConstantForm, build_forms
-import customerrs as cust
+from forms import Settings, build_calconstant_form, build_control_forms, build_constant_form
 import utils
+import customerrs as cust
+import constanthandler as const
+import calconstanthandler as calconst
 
 
 app = Flask(__name__)
@@ -21,14 +23,17 @@ def select_reactor():
 
 @app.route('/R1', methods=['GET', 'POST'])
 def R1():
-    # TODO: Add constant control<-
     # TODO: generalize for all reactors
     # TODO: Add data visualization
     ip = '128.208.236.57'
     port = 8001
-    loop_form_dict = build_forms()
+    reactorno=1
+    loop_form_dict = build_control_forms(reactorno)
     if request.method == 'POST':
-        status = utils.submit_command_to_reactor(ip, port, 1, request.form)
+        status = utils.submit_command_to_reactor(ip,
+                                                 port,
+                                                 reactorno,
+                                                 request.form)
         flash(status)
     return render_template('R1.html',
                            loop_form_dict=loop_form_dict,
@@ -38,10 +43,38 @@ def R1():
 
 @app.route('/R1/CalConstants', methods=['GET', 'POST'])
 def calconstants():
+    reactorno = 1
     ip = '128.208.236.57'
     port = 8001
-    form = CalConstantForm
-    if request.method == 'POST':
-        print(request.form)
+    CalConstantForm, slopes, ints = build_calconstant_form(ip, port, reactorno)
+    form = CalConstantForm()
+    if form.validate_on_submit():
+        signal, values = calconst.get_submitted(form)
+        statuses = calconst.submit_to_reactor(ip,
+                                              port,
+                                              reactorno,
+                                              signal,
+                                              values)
+        for status in statuses:
+            flash(status)
     return render_template('CalConstants.html',
-                           forms=form)
+                           form=form,
+                           slopes=slopes,
+                           ints=ints)
+
+
+@app.route('/R1/Constants', methods=['GET', 'POST'])
+def constants():
+    reactorno = 1
+    ip = '128.208.236.57'
+    port = 8001
+    ConstantForm, defaults = build_constant_form(ip, port, reactorno)
+    print(defaults)
+    form = ConstantForm()
+    if form.validate_on_submit():
+        name, value = const.get_submitted(reactorno, form)
+        status = const.submit_to_reactor(ip, port, reactorno, name, value)
+        flash(status)
+    return render_template('OtherConstants.html',
+                           form=form,
+                           defaults=defaults)

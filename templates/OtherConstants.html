@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+{% from "_formhelpers.html" import render_field %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Change Reactor 1 Misc. Constants</title>
+</head>
+<body>
+    <div class="messages"></div>
+    <!-- This block displays status of last command sent -->
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul class=flashes>
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+    </div>
+    <div class="form">
+        <!-- This block contains for the form -->
+        <form method=post>
+          <dl>
+          {{ form.csrf_token }}
+            {{ render_field(form.constant) }}
+            {{ render_field(form.value) }}
+          </dl>
+          <p><input type=submit value=Send></p>
+        </form>
+    </div>
+</body>
+</html>
+<script type=text/javascript src="{{
+  url_for('static', filename='jquery.js') }}"></script>
+<script>
+$(document).ready(function(){
+    $("#constant").on('change', function() {
+    // This function gets current value of a constant and returns it to the form when a new constant is selected
+        // Current values are sent from server on page load as {#defaults#}
+        // This converts that dictionary of current values to js array
+        var js_dict = [
+        {% for k in defaults %}
+            ["{{ k }}","{{ defaults[k] }}"] {% if not last %},{% endif %}
+         {% endfor %}
+        ];
+        var name = this.value // This is the currently selected constant
+        alert(name)
+        // Loop through to find the value of the selected constant and fill in form
+        for ( idx in js_dict ){
+            if (name == js_dict[idx][0]){
+                $("#value").val(js_dict[idx][1]);
+            };  // Fill into form
+        };
+    });
+});
+</script>

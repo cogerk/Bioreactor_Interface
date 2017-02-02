@@ -1,14 +1,63 @@
 <!DOCTYPE html>
+{% from "_formhelpers.html" import render_field %}
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Change Reactor 1 Calibration Constants</title>
 </head>
 <body>
-  {{ form.csrf_token }}
-    {{ render_field(form.signal) }}
-    {{ render_field(form.slope) }}
-    {{ render_field(form.intercept) }}
-  <p><input type=submit value=Select></p>
+    <div class="messages"></div>
+    <!-- This block displays status of last command sent -->
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul class=flashes>
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+    </div>
+    <div method ="constants">
+        <!-- This block the form -->
+        <form method=post>
+          <dl>
+          {{ form.csrf_token }}
+            {{ render_field(form.signal) }}
+            {{ render_field(form.slope) }}
+            {{ render_field(form.intercept) }}
+          </dl>
+          <p><input type=submit value=Send></p>
+        </form>
+    </div>
 </body>
 </html>
+<script type=text/javascript src="{{
+  url_for('static', filename='jquery.js') }}"></script>
+<script>
+$(document).ready(function(){
+    $("#signal").on('change', function() {
+    // This function gets current slopes/ints of a signal and returns it to form when a new signal is selected
+        // Current values are sent from server on page load as {#slopes#} & {#ints#}
+        // This converts that dictionary of current values to js array
+        var js_slopes = [
+        {% for k in slopes %}
+            ["{{ k }}","{{ slopes[k] }}"] {% if not last %},{% endif %}
+         {% endfor %}
+        ];
+        var js_ints = [
+        {% for k in ints %}
+            ["{{ k }}","{{ ints[k] }}"] {% if not last %},{% endif %}
+         {% endfor %}
+        ];
+        var name = this.value  // This is the currently selected signal
+        // Loop through to find the slope and intercept of selected signal and fill slope and int into form
+        for ( idx in js_slopes ){
+            if (name == js_slopes[idx][0]){
+                $("#slope").val(js_slopes[idx][1]);
+                $("#intercept").val(js_ints[idx][1]);
+            };
+        };
+    });
+});
+</script>

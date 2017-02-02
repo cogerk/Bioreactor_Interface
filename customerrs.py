@@ -56,11 +56,18 @@ SBR_PHASES = [('Anaerobic%20Feed', 'Anaerobic Feed'), # Media + Water pumps on
               ('Idle', 'Idle')]  # All pumps off
 
 # List of signals being measured in cRIO
-SIGNALS = ['pH', 'DO', 'NH4', 'ORP', 'VFD Signal', 'VFD RPM', 'Air', 'N2']
-CONSTANTS = ['Data Smooth Time',
-             'ISE Na Correction Factor',
-             'R1 Na Concentration']
-
+SIGNALS = [('pH', 'pH'),
+           ('DO', 'DO'),
+           ('NH4', 'NH4'),
+           ('ORP', 'ORP'),
+           ('VFD%20Signal', 'VFD Signal'),
+           ('VFD%20RPM', 'VFD RPM'),
+           ('Air', 'Air'),
+           ('N2', 'N2')]
+CONSTANTS = [('Data Smooth Time', 'Data Smooth Time'),
+             ('ISE Na Correction Factor', 'ISE Na Correction Factor'),
+             ('Na Concentration', 'Na Concentration')]
+# TODO: How to add units to form label?
 # List of control loops
 LOOPS = ['pH', 'DO', 'NH4', 'SBR']
 

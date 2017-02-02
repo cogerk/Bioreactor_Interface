@@ -4,6 +4,8 @@ from wtforms import StringField, FloatField, BooleanField, \
 from wtforms.validators import DataRequired
 import utils
 import customerrs as cust
+import calconstanthandler as calconst
+import constanthandler as const
 
 
 # TODO: Make reactor list dynamic & add reactor addition page instead
@@ -28,19 +30,38 @@ class Settings(Form):
     port = IntegerField('Webservice Port', default=8001)
 
 
-class CalConstantForm:
-    """
-    This generates the calibration constant form
-    """
-    # TODO: Generalize for all reactors
-    signal = SelectField('Signal',
-                         choices=cust.SIGNALS,
-                         default=cust.SIGNALS[0])
-    slope = FloatField('Slope')
-    intercept = FloatField('Intercept')
+def build_constant_form(ip, port, reactorno):
+    constants = const.get_all_current(ip, port, reactorno)
+    class ConstantForm(Form):
+        # This generates the constants form
+        # TODO: Generalize for all reactors
+        constant = SelectField('Signal',
+                             choices=cust.CONSTANTS,
+                             default=cust.CONSTANTS[0])
+    setattr(ConstantForm,
+            'value',
+            FloatField('Value', default=constants[cust.CONSTANTS[0][0]]))
+    return ConstantForm, constants
 
 
-def build_forms(reactorno=1):
+def build_calconstant_form(ip, port, reactorno):
+    slopes, ints = calconst.get_all_current(ip, port, reactorno)
+    class CalConstantForm(Form):
+        # This generates the calibration constant form
+        # TODO: Generalize for all reactors
+        signal = SelectField('Signal',
+                             choices=cust.SIGNALS,
+                             default=cust.SIGNALS[0])
+    setattr(CalConstantForm,
+            'slope',
+            FloatField('Slope', default=slopes[cust.SIGNALS[0][0]]))
+    setattr(CalConstantForm,
+            'intercept',
+            FloatField('intercept', default=ints[cust.SIGNALS[0][0]]))
+    return CalConstantForm, slopes, ints
+
+
+def build_control_forms(reactorno):
     """
     Programatically build dict of dict of forms for the remote control panel
     :param reactorno: int, given reactor number to build forms for
