@@ -2,7 +2,7 @@
 Functions to accept form submitted from /Constant page,
 translate to commands that the webservice will understand,
 passing those commands to the cRIO,
-and reading current calibration constants into a dictionary <Todo
+and reading current calibration constants into a dictionary
 Written By: Kathryn Cogert
 Feb 1 2017
 """
@@ -54,7 +54,8 @@ def submit_to_reactor(ip, port, reactorno, name, value):
     :param ip: str, the cRIO IP address
     :param port: int, the port of the webservice
     :param reactorno: int, # of the reactor
-    :param submitted_form: obj, the form given from the POST request.
+    :param name: str, the name of the constant to write to
+    :param value: float, value to write, if None, read mode
     :return: str/int, returns status back from cRIO/if read mode, returns vals
     """
     # Translate to vi name & command string that cRIO can read

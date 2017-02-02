@@ -11,11 +11,13 @@ import constanthandler as const
 # TODO: Make reactor list dynamic & add reactor addition page instead
 REACTORS = [('R1', 'Reactor 1'),
             ('R2', 'Reactor 2')]
+# TODO: Add titles to string forms
+# TODO: Add units to form labels
 # TODO: Add email alarms
 # TODO: email address validation
 # TODO: Fix Labels
-# TODO: Rework how SBR forms are generated <-
 # TODO: Change so that defaults populate from reactor on build_forms <-
+# TODO: add jquery to update sbr pumps when in auto mode
 # TODO: Build validators
 # TODO: When you write something new show it hasn't been submitted yet somehow.
 
@@ -90,22 +92,33 @@ def build_control_forms(reactorno):
                         # Loop through 'commands' for given loop and action.
                         # i.e. ph_manual -> acid pump & base pump
                         # i.e. do_set params -> do set pt, n2 gain, etc. etc.
-                        default = cust.loopdict[loop][action][name]
-                        field_type = type(cust.loopdict[loop][action][name])
-                        # Use data type of command default to determine field
-                        # i.e. boolean -> checkbox, float -> double
-                        if field_type is bool:
-                            setattr(F, name, BooleanField(name+'_on',
-                                                          default=default))
-                        if field_type is float \
-                                or field_type is str \
-                                or field_type is int:
-                            setattr(F, name, FloatField(name,
-                                                        default=default))
-                        if type(cust.loopdict[loop][action][name]) is list:
-                            setattr(F, name, SelectField(name,
-                                                         choices=default,
-                                                         default=default[0]))
+                        # But SBR set parameter form has special rules.
+                        if not isinstance(name,tuple):
+                            default = cust.loopdict[loop][action][name]
+                            field_type = type(default)
+                            # Use data type of command to determine field
+                            # i.e. boolean -> checkbox, float -> double
+                            if field_type is bool:
+                                setattr(F, name, BooleanField(name+' On?',
+                                                              default=default))
+                            if field_type is float \
+                                    or field_type is str \
+                                    or field_type is int:
+                                setattr(F, name, FloatField(name,
+                                                            default=default))
+                        else:  # SBR has special rules b/c order matters.
+                            default = name[1]
+                            field_type = type(default)
+                            # Use data type of command to determine field
+                            # i.e. boolean -> checkbox, float -> double
+                            if field_type is bool:
+                                setattr(F, name[0], BooleanField(name[0]+' On?',
+                                                              default=default))
+                            if field_type is float \
+                                    or field_type is str \
+                                    or field_type is int:
+                                setattr(F, name[0], FloatField(name[0],
+                                                            default=default))
                 else:
                     # This is what a switch form looks like, simple huh?
                     label = loop+' Control On?'

@@ -2,7 +2,7 @@
 Functions to accept form submitted from /CalConstant page,
 translate to commands that the webservice will understand,
 passing those commands to the cRIO,
-and reading current calibration constants into a dictionary <Todo
+and reading current calibration constants into a dictionary
 Written By: Kathryn Cogert
 Feb 1 2017
 """
@@ -15,7 +15,6 @@ import customerrs as cust
 def get_submitted(form):
     """
     Gets the submitted values sent via a post request and store in dictionary
-    :param reactorno: int, # of the reactor
     :param form: form object, the submitted form via post request
     :return: dictionary of constant(s) and value(s)
     """
@@ -59,7 +58,7 @@ def submit_to_reactor(ip, port, reactorno, signal, values):
     :param port: int, the port of the webservice
     :param reactorno: int, # of the reactor
     :param signal: str, the name of the signal to affected
-    :param to_write: float list, [Slope, Intercept], if None, read mode
+    :param values: float list, [Slope, Intercept], if None, read mode
     :return: array of str/int, return status from cRIO/if read mode return vals
     """
     # Translate to vi name & command string that cRIO can read

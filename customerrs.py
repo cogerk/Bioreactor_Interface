@@ -26,20 +26,7 @@ ACTIONS = ['Switch',  # Switch control loop on or off
            'Status',  # Get status of control loop
            'Manual',  # Control Loop Actuators Manually
            'SetParams']  # Set control loop parameters, i.e. gain, set pt, etc.
-"""
-Maybe switch to this format?
-SBR_PUMPS = {'Effluent Pump': False,
-             'Gas Pump': False,
-             'Water Pump': False,
-             'Media Pump': False}
-SBR_PHASES = {'Anaerobic Feed': 50.0,
-              'Purge': 5.0,
-              'Aerated Feed': 0.0,
-              'Aerate': 100.0,
-              'Settle': 10.0,
-              'Decant': 5.0,
-              'Idle': 1.0}
-"""
+
 # List of actuating pumps for Sequencing Batch Reactor (SBR) mode control
 SBR_PUMPS = [('Effluent%20Pump', 'Effluent Pump'),
              ('Gas%20Pump', 'Gas Pump'),
@@ -75,8 +62,10 @@ LOOPS = ['pH', 'DO', 'NH4', 'SBR']
 PH_MANUAL = {'AcidPump': False, 'BasePump': False}
 DO_MANUAL = {'Air': 0.0, 'N2': 0.0}
 NH4_MANUAL = {'VFDFlowrate': 0.0}
-SBR_MANUAL = {'CommandToPump': False,
-              'Pump': SBR_PUMPS}
+SBR_MANUAL = {'Effluent Pump': False,
+              'Gas Pump': False,
+              'Water Pump': False,
+              'Media Pump': False}
 
 # Dictionaries of control loop parameters and default values
 PH_SETPARAMS = {'pHDelay_In': 3.0, 'pHTol_In': 0.1, 'pHSetPt_In': 7.0}
@@ -84,8 +73,13 @@ DO_SETPARAMS = {'R1DOTol_In': 0.05, 'R1AirGain_In': 5000.0,
                 'R1N2Gain_In': 1000.0, 'R1DOSetPt_In': 0.35}
 NH4_SETPARAMS = {'VFDGain_In': 100.0, 'NH4Tol_In': 0.14,
                  'NH4SetPt_In': 0.01}
-SBR_SETPARAMS = {'TimeToWrite': 0.0,
-                 'Phase': SBR_PHASES}
+SBR_SETPARAMS = [('Anaerobic Feed', 50.0),
+                 ('Purge', 5.0),
+                 ('Aerated Feed', 0.0),
+                 ('Aerate', 100.0),
+                 ('Settle', 10.0),
+                 ('Decant', 5.0),
+                 ('Idle', 1.0)]
 
 
 def create_masterdict():

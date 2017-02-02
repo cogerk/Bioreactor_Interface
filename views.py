@@ -4,7 +4,7 @@ import utils
 import customerrs as cust
 import constanthandler as const
 import calconstanthandler as calconst
-
+import controlcmdhandler as cmd
 
 app = Flask(__name__)
 app.secret_key = 'w1nkl3r!'
@@ -30,10 +30,7 @@ def R1():
     reactorno=1
     loop_form_dict = build_control_forms(reactorno)
     if request.method == 'POST':
-        status = utils.submit_command_to_reactor(ip,
-                                                 port,
-                                                 reactorno,
-                                                 request.form)
+        status = cmd.submit_to_reactor(ip, port, reactorno, request.form)
         flash(status)
     return render_template('R1.html',
                            loop_form_dict=loop_form_dict,
