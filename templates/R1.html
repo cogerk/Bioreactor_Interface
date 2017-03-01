@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- TODO: Pretty formatting + CSS-->
+<!-- TODO: Pretty formatting + CSS checkboxes are red/green for off/on -->
 {% from "_formhelpers.html" import render_field %}
 <title>Reactor 1 Control Panel</title>
 <body>
@@ -15,27 +15,36 @@
       {% endif %}
     {% endwith %}
     </div>
-    <div class="loop">
+    <div class="control_forms">
         <!-- Every Control Loop (i.e. pH, DO, SBR) gets it's own section -->
         {% for c_loop in all_loops %}
-        <div class="action">
+        <div class="loop">
             <!-- Makes div for every control loop's on/off switch, parameter settings, or manual controls -->
             {% for c_action in all_actions %}
                 {% if c_action != 'Status'  %}
-                <form id="{{ c_loop+'_'+c_action }}" method="post">
-                    <!-- Renders each field in form as defined in the form dictionary -->
-                        {% for subfield in loop_form_dict[c_loop][c_action]%}
-                            {{loop_form_dict[c_loop][c_action].csrf_token}}
-                            {% if (subfield.type != 'SubmitField') and (subfield.type != 'CSRFTokenField') %}
-                                {{ render_field(subfield) }}
-                            {% endif %}
-                        {% endfor %}
+                <div class="{{c_action}}">
+                    <form id="{{ c_loop+'_'+c_action }}" method="post">
+                        <!-- Renders each field in form as defined in the form dictionary -->
+                        {{loop_form_dict[c_loop][c_action].csrf_token}}
+                        {% if c_action == 'Switch' %}
+                            {{ render_field(loop_form_dict[c_loop][c_action]['control_on']) }}
+                        {% else %}
+                            {% for subfield in loop_form_dict[c_loop][c_action]%}
+                                {% if (subfield.type != 'SubmitField') and (subfield.type != 'CSRFTokenField') %}
+                                    {{ render_field(subfield) }}
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
                         {{ loop_form_dict[c_loop][c_action].submit }}
-                </form>
+                    </form>
+                </div>
                 {% endif %}
             {% endfor %}
         </div>
         {% endfor %}
+    </div>
+    <div class="Graph">
+        {{ graphdiv|safe }}
     </div>
     <div class = "Constants">
         <a href="/R1/CalConstants">Change Reactor Calibration Constants</a>
@@ -43,34 +52,115 @@
         <a href="/R1/Constants">Change Other Reactor Constants</a>
     </div>
 </body>
+<link
+    href="http://cdn.pydata.org/bokeh/release/bokeh-0.12.4.min.css"
+    rel="stylesheet" type="text/css">
+<link
+    href="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.4.min.css"
+    rel="stylesheet" type="text/css">
 
+<script src="http://cdn.pydata.org/bokeh/release/bokeh-0.12.4.min.js"></script>
+<script src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.4.min.js"></script>
 <script type=text/javascript src="{{
   url_for('static', filename='jquery.js') }}"></script>
+<!-- This contains the script to build the embedded graph -->
+{{ graphscript|safe }}
 <script>
 $(document).ready(function(){
+
+
     // This function enables/disables manual controls if control switch is off/on
-    $("*[id*=control_on]:visible").each(function(){  // loop through control loop switch
-        var id = '#'
-        var controlstr = this.id;
-        var formstr = controlstr.substring(0,controlstr.indexOf('_'));
-        var manformstr = formstr.concat('_Manual * '); // build id of manual control form id given a loop switch id
-        if ($(this).is(":checked")){
-        // if control is on
-            $(id.concat(manformstr)).filter(':input').each(function(){ // loop through manual control form fields
-                // disable all manual control form fields
-                $(this).attr("disabled", true)
+    $.getJSON('R1/Current', function(result){ // Get Data
+        $.each(result, function(key, val){  // loop through control loops
+            // On page load, populate form values with current values
+
+            // Auto control on/off
+            var switchformstr = key.concat('_Switch');
+            var switchval = val[switchformstr]
+            $('#'+switchformstr+'-control_on').attr('checked', switchval);
+
+            // Manual Control Values
+            var manformstr = key.concat('_Manual');
+            var manvals = val[manformstr]
+            $('#'+manformstr+' *').filter(':input').each(function(){
+                var formele = this
+                $.each(manvals, function(key, val){
+                    if (formele.id.indexOf(val[0]) > -1) {
+                        if ($(formele).is(':checkbox')){
+                            $(formele).attr('checked', val[1])
+                        }
+                        else {
+                            $(formele).attr('value', val[1])
+                        };
+                    };
+                });
             });
-        }
-        else{
-            $(id.concat(manformstr)).filter(':input').each(function(){
-                // otherwise enable all manual control form fields
-                $(this).attr("disabled", false)
+
+            // Control Parameters
+            var setparamformstr = key.concat('_SetParams');
+            var setparamvals = val[setparamformstr]
+            $('#'+setparamformstr+' *').filter(':input').each(function(){
+                var formele = this
+                $.each(setparamvals, function(key,val){
+                    if (formele.id.indexOf(val[0]) > -1) {
+                        if ($(formele).is(':checkbox')){
+                            $(formele).attr('checked', val[1])
+                        }
+                        else {
+                            $(formele).attr('value', val[1])
+                        };
+                    };
+                });
             });
-        };
+
+            // If automatic control on, disable manual input
+            if (switchval){
+                 // loop through manual control form fields
+                $('#'+manformstr+' *').filter(':input').each(function(){
+                    // disable all manual control form fields
+                    $(this).attr("disabled", true)
+                });
+            }
+            else{
+                $('#'+manformstr+' *').filter(':input').each(function(){
+                    // otherwise enable all manual control form fields
+                    $(this).attr("disabled", false)
+                });
+            };
+        });
     });
+
+    setInterval(
+        function () {
+            $.getJSON('R1/Current', function(result){
+                $.each(result, function(key, val){  // loop through control loop switch
+                var switchformstr = key.concat('_Switch');
+                var switchval = val[switchformstr]
+                var manformstr = key.concat('_Manual')
+                var manvals = val[key+'_Manual']
+                    if (switchval){
+                        $('#'+manformstr+' *').filter(':input').each(function(){
+                            var formele = this
+                            $.each(manvals, function(key,val){
+                                if (formele.id.indexOf(val[0]) > -1) {
+                                    if ($(formele).is(':checkbox')){
+                                        $(formele).attr('checked', val[1])
+                                    }
+                                    else {
+                                        $(formele).attr('value', val[1])
+                                    };
+                                }
+                            });
+                        });
+                    };
+                });
+            });
+        },
+    {{ update }});
+
     // This function automatically send the control on/off function if any control loop switch is clicked.
     $("*[id*=control_on]:visible").click(function(event){ //
         $(event.target.form).submit();
-        });
     });
+});
 </script>

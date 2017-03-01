@@ -9,7 +9,7 @@ Feb 1 2017
 import urllib.request
 from xml.etree import ElementTree
 import utils
-import customerrs as cust
+import reactorhandler as rctr
 
 
 def get_submitted(reactorno, form):
@@ -88,10 +88,11 @@ def get_all_current(ip, port, reactorno):
     """
     r_name = 'R'+str(reactorno)+' '
     all_current = {}
-    for const in cust.CONSTANTS:
-        all_current[const[0]] = submit_to_reactor(ip,
+    constant_list = rctr.get_other_constants(ip, port, reactorno)
+    for const in constant_list:
+        all_current[const] = submit_to_reactor(ip,
                                                   port,
                                                   reactorno,
-                                                  r_name+const[0],
+                                                  r_name+const,
                                                   None)  # None means Read Mode
-    return all_current
+    return all_current, constant_list

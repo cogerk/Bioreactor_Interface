@@ -9,7 +9,8 @@ Feb 1 2017
 import urllib.request
 from xml.etree import ElementTree
 import utils
-import customerrs as cust
+import reactorhandler as rctr
+
 
 
 def get_submitted(form):
@@ -98,8 +99,9 @@ def get_all_current(ip, port, reactorno):
     """
     all_slopes = {}
     all_ints = {}
-    for signal in cust.SIGNALS:
-        vals = submit_to_reactor(ip, port, reactorno, signal[0], None)
+    signal_list = rctr.get_signals(ip, port, reactorno)
+    for signal in signal_list:
+        vals = submit_to_reactor(ip, port, reactorno, signal, None)
         all_slopes[signal[0]] = vals[0]
         all_ints[signal[0]] = vals[1]
-    return all_slopes, all_ints
+    return signal_list, all_slopes, all_ints
