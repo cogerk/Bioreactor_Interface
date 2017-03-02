@@ -1,5 +1,5 @@
 from __init__ import db
-
+from flask_admin.contrib.sqla import ModelView #Flask-SQLAlchemy
 
 # Reactor Database
 class Reactor(db.Model):
@@ -11,27 +11,54 @@ class Reactor(db.Model):
     principle = db.Column(db.String(80))
     email = db.Column(db.String(120))
 
-    def __init__(self, idx, descrip, crio, principle, email):
+    def __init__(self, idx=None, descrip=None, controller=None, principle=None, email=None):
         self.idx = idx
         self.descrip = descrip
-        self.crio = crio
+        self.controller = controller
         self.principle = principle
         self.email = email
 
     def __repr__(self):
-        return '<Reactor #: %r><Description: %r>' % (self.id, self.descrip)
+        return '%r (Description: %r)' % (self.idx, self.descrip)
 
 
 # cRIO Database
 class Controller(db.Model):
     idx = db.Column(db.Integer, primary_key=True)
-    ip = db.Column(db.String(80))
+    ip = db.Column(db.String(80), unique=True)
+    debug_port = db.Column(db.Integer)
     port = db.Column(db.Integer)
+    controller_type = db.Column(db.String(80))
 
-    def __init__(self, idx, ip, port):
+    def __init__(self, idx=None, ip=None, port=None, debug_port=None, controller_type=None):
         self.idx = idx
         self.ip = ip
         self.port = port
+        self.debug_port =debug_port
+        self.controller_type = controller_type
 
     def __repr__(self):
-        return '<cRIO #: %r><IP: %r><Port: %r>' % (self.idx, self.IP, self.port)
+        return str(self.idx)
+
+
+class ReactorModelView(ModelView):
+    """
+    Custom view to show reactor database on admin page
+    """
+    column_list = ['idx', 'descrip', 'principle', 'email', 'controller_idx']
+    column_labels = dict(descrip='Description',
+                         controller='Controller #',
+                         controller_idx='Controller #',
+                         email='Email For Alarms',
+                         idx='Reactor #')
+
+
+class ControllerModelView(ModelView):
+    """
+    Custom view to show reactor database on admin page
+    """
+    column_list = ['idx', 'ip', 'port', 'debug_port', 'controller_type']
+    column_labels = dict(idx='Controller #',
+                         ip='IP',
+                         debug_port='Debug Port',
+                         controller_type='Description/Model')

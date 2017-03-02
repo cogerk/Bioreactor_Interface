@@ -70,7 +70,7 @@ $(document).ready(function(){
 
 
     // This function enables/disables manual controls if control switch is off/on
-    $.getJSON('R1/Current', function(result){ // Get Data
+    $.getJSON('{{reactor[0]}}/current', function(result){ // Get Data
         $.each(result, function(key, val){  // loop through control loops
             // On page load, populate form values with current values
 
@@ -132,7 +132,7 @@ $(document).ready(function(){
 
     setInterval(
         function () {
-            $.getJSON('R1/Current', function(result){
+            $.getJSON('{{reactor[0]}}/current', function(result){
                 $.each(result, function(key, val){  // loop through control loop switch
                 var switchformstr = key.concat('_Switch');
                 var switchval = val[switchformstr]

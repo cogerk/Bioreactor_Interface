@@ -41,7 +41,7 @@ $(document).ready(function(){
         // This converts that dictionary of current values to js array
         var js_dict = [
         {% for k in defaults %}
-            ["{{ k }}","{{ defaults[k] }}"] {% if not last %},{% endif %}
+            ['{{ k }}','{{ defaults[k] }}'] {% if not last %},{% endif %}
          {% endfor %}
         ];
         var name = this.value // This is the currently selected constant

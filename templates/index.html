@@ -9,13 +9,13 @@
 <form method=post>
   <dl>
   {{ form.csrf_token }}
-    {{ render_field(form.reactor_no) }}
-    {{ render_field(form.email) }}
-    {{ render_field(form.IP) }}
-    {{ render_field(form.port) }}
+  {{ render_field(form.reactor_no) }}
   </dl>
-  <p><input type=submit value=Select></p>
+  <dl>Principle: <div id="Principle">Loading...</div></dl>
+  <dl>Email For Alarms: <div id="Email">Loading...</div></dl>
+  <p><input type=submit value=Select>  <input type=submit value=Edit></p>
 </form>
+<a href="/admin">Admin</a>
 {% block body %}{% endblock %}
 </body>
 </html>
@@ -24,4 +24,36 @@
   url_for('static', filename='jquery.js') }}"></script>
 <script>
 // TODO: Code here to auto update what is displayed in other fields based off of reactor selection
+$(document).ready(function(){
+    // Current values are sent from server on page load as {#details#}
+    // This converts that dictionary of current values to js array
+    var js_dict = [
+        {% for reactor in details %}
+            [{{ reactor.idx }},'{{ reactor.principle }}','{{ reactor.email }}'] {% if not last %},{% endif %}
+         {% endfor %}
+        ];
+    // Look for currently selected reactor in js dict and return principle/email
+    r_no = $('#reactor_no').val()
+    for ( idx in js_dict ){
+        if (r_no == js_dict[idx][0]){
+            $('#Principle').html(js_dict[idx][1]);
+            <!-- TODO: Add as link -->
+            $('#Email').html(js_dict[idx][2]);
+
+        };
+    };
+
+    // When selected reactor changes, do the above again.
+    $('#reactor_no').on('change', function() {
+        $('#Principle').html('Loading...');
+        $('#Email').html('Loading...');
+        var name = this.value // This is the currently selected constant
+        for ( idx in js_dict ){
+            if (r_no == js_dict[idx][0]){
+                $('#Principle').html(js_dict[idx][1]);
+                $('#Email').html(js_dict[idx][2]);
+            };
+        };
+    });
+});
 </script>

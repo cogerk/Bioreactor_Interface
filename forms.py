@@ -1,3 +1,4 @@
+import sqlite3
 from flask_wtf import Form
 from wtforms import StringField, FloatField, BooleanField, \
     SelectField, IntegerField, SubmitField
@@ -5,30 +6,26 @@ import utils
 import calconstanthandler as calconst
 import constanthandler as const
 import controlcmdhandler as cmd
-
-# TODO: Make reactor list dynamic & add reactor addition page instead
-REACTORS = [('R1', 'Reactor 1'),
-            ('R2', 'Reactor 2')]
+from __init__ import models
 # TODO: Add email alarms
 # TODO: email address validation
 # TODO: Build validators
 # TODO: When you write something new show it hasn't been submitted yet somehow.
 
-class Settings(Form):
-    # This is the form on the front page used to pick the reactor to control
-    reactor_no = SelectField('Reactor Number',
-                             choices=REACTORS,
-                             default=REACTORS[0])
-    email = StringField('Email Address', default='cogerk@gmail.com')
-    IP = StringField('cRIO IP', default='128.208.236.57')
-    port = IntegerField('Webservice Port', default=8001)
+def create_reactor_form(rct_list):
+    class SelectReactor(Form):
+        # This is the form on the front page used to pick the reactor to control
+        print(rct_list)
+        reactor_no = SelectField('Reactor Number',
+                                 choices=rct_list,
+                                 default=rct_list[0])
+    return SelectReactor
 
 
 def build_constant_form(ip, port, reactorno):
     constants, constant_list = const.get_all_current(ip, port, reactorno)
     class ConstantForm(Form):
         # This generates the constants form
-        # TODO: Generalize for all reactors
         constant_list = zip(constant_list,constant_list)
         constant = SelectField('Signal',
                              choices=constant_list,
@@ -44,7 +41,6 @@ def build_calconstant_form(ip, port, reactorno):
     signal_list = zip(signal_list, signal_list)
     class CalConstantForm(Form):
         # This generates the calibration constant form
-        # TODO: Generalize for all reactors
 
         signal = SelectField('Signal',
                              choices=signal_list,

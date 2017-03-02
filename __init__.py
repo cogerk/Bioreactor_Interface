@@ -12,7 +12,6 @@ Stolen On: Feb 28 2017
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 import customerrs as cust
-#from flask_admin import Admin #TODO: DO I need this?
 
 app = Flask(__name__)
 try:
@@ -20,11 +19,12 @@ try:
         app_secret_key = myfile.readlines()
 except cust.MissingKey:
     pass
+
 app_secret_key = app_secret_key[0]
-app.secret_key = app_secret_key[0]
+app.secret_key = app_secret_key
 app.config.from_object('config')
 db = SQLAlchemy(app)
-
+test = 'a test variable'
 # TODO: Login Page
 #login_manager = LoginManager()
 #login_manager.init_app(app)

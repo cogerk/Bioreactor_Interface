@@ -34,28 +34,30 @@ def get_submitted(form, current):
             command = entry[entry.index('-')+1:]
             commands_dict[command] = form[entry]
     # Special rules for SBR set params
+    """
     if isinstance(all_commands_dict, list):
         sbr_dict = {}
         for phase, length in all_commands_dict:
             sbr_dict.setdefault(phase, []).append(length)
         all_commands_dict = sbr_dict
+    """
     if action == 'Switch':  # If switch, only expecting one parameter, no dict
         if 'control_on' in commands_dict:
             all_commands_dict = True
         else:
             all_commands_dict = False
         return loop, action, all_commands_dict
-    for each in all_commands_dict:
+    for idx, each in enumerate(all_commands_dict):
         # Checkboxes don't get passed to form if unchecked, therefore if a
         # boolean input is expected check to see if that input was submitted w/
         # the form. If it isn't, set that input as false. Else, set it as true.
-            if type(all_commands_dict[each]) == bool:
-                if each not in commands_dict:
-                    all_commands_dict[each] = False
+            if type(each[1]) == bool:
+                if each[0] not in commands_dict:
+                    all_commands_dict[idx] = (each[0], False)
                 else:
-                    all_commands_dict[each] = True
+                    all_commands_dict[idx] = (each[0], True)
             else:
-                all_commands_dict[each] = commands_dict[each]
+                all_commands_dict[idx] = (each[0], commands_dict[each[0]])
     return loop, action, all_commands_dict
 
 
@@ -84,10 +86,10 @@ def translate_to_ws(reactorno, loop, action, params=None):
         if loop == 'SBR' and action != 'Switch':
             command = [command+'Label='] * len(params)
             for idx, each in enumerate(params):
-                if type(params[each]) is bool:
+                if type(each[1]) is bool:
                         # URL requires booleans to be 1 or 0 not True/False
-                        params[each] = int(params[each])
-                command[idx] += each+'&ToWrite='+str(params[each])
+                        each = (each[0], int(each[1]))
+                command[idx] += each[0]+'&ToWrite='+str(each[1])
                 # Replace all spaces with %20 so it makes sense as a URL
                 command[idx] = command[idx].replace(' ', '%20')
         else:
