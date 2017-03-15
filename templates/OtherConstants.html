@@ -2,22 +2,67 @@
 {% from "_formhelpers.html" import render_field %}
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Change Reactor 1 Misc. Constants</title>
+    <title>Edit {{reactor}} Misc. Constants</title>
+    <script
+        type=text/javascript
+        src="{{ url_for('static', filename='jquery.js') }}"></script>
+    <script
+        src="https://npmcdn.com/tether@1.2.4/dist/js/tether.min.js">
+    </script>
+    <script
+        src="https://npmcdn.com/bootstrap@4.0.0-alpha.5/dist/js/bootstrap.min.js">
+    </script>
+    <link
+        href="{{
+            url_for('static', filename='css/bootstrap.min.css') }} "
+        rel="stylesheet">
+    <link
+        href="{{
+            url_for('static', filename='css/custom.css') }} "
+        rel="stylesheet">
+    <script
+        src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js">
+    </script>
+    <script
+        src="{{url_for('static', filename='js/bootstrap.min.js')}}">
+    </script>
+    <link
+            href="http://cdn.pydata.org/bokeh/release/bokeh-0.12.4.min.css"
+            rel="stylesheet"
+            type="text/css">
+    <link
+        href="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.4.min.css"
+        rel="stylesheet"
+        type="text/css">
+    <script
+        src="http://cdn.pydata.org/bokeh/release/bokeh-0.12.4.min.js">
+    </script>
+    <script
+        src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.4.min.js">
+    </script>
 </head>
-<body>
-    <div class="messages"></div>
+<body class="container">
+    <div id="Title" class="row">
+        <h1>
+            Edit Reactor {{reactor}} Misc. Constants
+        </h1>
+    </div>
     <!-- This block displays status of last command sent -->
     {% with messages = get_flashed_messages() %}
       {% if messages %}
-        <ul class=flashes>
-        {% for message in messages %}
-          <li>{{ message }}</li>
-        {% endfor %}
+        <h2 class="row">
+          Result:
+        </h2>
+        <div id="messages" class="row">
+          <ul class=flashes>
+          {% for message in messages %}
+            <li>{{ message }}</li>
+          {% endfor %}
         </ul>
+        </div>
       {% endif %}
     {% endwith %}
-    </div>
+
     <div class="form">
         <!-- This block contains for the form -->
         <form method=post>
@@ -26,7 +71,8 @@
             {{ render_field(form.constant) }}
             {{ render_field(form.value) }}
           </dl>
-          <p><input type=submit value=Send></p>
+          <p class="row justify-content-center">
+              <input class="btn btn-primary" type=submit value=Send></p>
         </form>
     </div>
 </body>
@@ -45,7 +91,6 @@ $(document).ready(function(){
          {% endfor %}
         ];
         var name = this.value // This is the currently selected constant
-        alert(name)
         // Loop through to find the value of the selected constant and fill in form
         for ( idx in js_dict ){
             if (name == js_dict[idx][0]){

@@ -12,15 +12,16 @@ import utils
 import reactorhandler as rctr
 
 
-def get_submitted(reactorno, form):
+def get_submitted(form):
     """
     Gets the submitted values sent via a post request and store in dictionary
     :param reactorno: int, # of the reactor
     :param form: form object, the submitted form via post request
     :return: dictionary of constant(s) and value(s)
     """
-    r_name = 'R'+str(reactorno)
-    name = r_name + ' ' + form.constant.data
+    # TODO: Generalize?
+    # TODO: cRIO Side, add var name to status
+    name = form.constant.data
     value = form.value.data
     return name, value
 
@@ -63,7 +64,9 @@ def submit_to_reactor(ip, port, reactorno, name, value):
                                    name,
                                    value)
     # Build the URL to send & send it
+    # TODO: WHy returning invalid constant name?
     get_url = utils.build_url(ip, port, reactorno, vi, cmdstr)
+    print(get_url)
     result = urllib.request.urlopen(get_url).read()
     # Result is an XML tree, parse this to see if command was sent successfully
     root = ElementTree.fromstring(result)
@@ -86,13 +89,12 @@ def get_all_current(ip, port, reactorno):
     :param reactorno: int, # of the reactor
     :return: dict, dictionary of current values
     """
-    r_name = 'R'+str(reactorno)+' '
     all_current = {}
     constant_list = rctr.get_other_constants(ip, port, reactorno)
     for const in constant_list:
         all_current[const] = submit_to_reactor(ip,
-                                                  port,
-                                                  reactorno,
-                                                  r_name+const,
-                                                  None)  # None means Read Mode
+                                               port,
+                                               reactorno,
+                                               const,
+                                               None)  # None means Read Mode
     return all_current, constant_list

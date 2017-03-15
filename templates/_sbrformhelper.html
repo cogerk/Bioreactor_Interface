@@ -1,0 +1,71 @@
+
+{% macro render_sbr_fields(action,c_loop,form) %}
+    <div
+        class="form-group row justify-content-md-center"
+        id = "{{ c_loop+'_'+action + '_div'}}">
+        <form class="col-12 col-sm-auto" id="{{ c_loop+'_' + action + '_Form'}}" method="post">
+            {{form.csrf_token}}
+                {% if action == 'Switch' %}
+                    <div
+                        class="btn-group"
+                        data-toggle="buttons"
+                        id="{{ c_loop+'_'+action+'_div' }}">
+                            <label
+                                class="btn btn-secondary btn-lg"
+                                for="{{ form.control_on.id }}">
+                                    {{ form.control_on(
+                                        class="btn btn-secondary btn-lg",
+                                        autocomplete="off",
+                                        **kwargs)
+                                        |safe }}
+                                    {{ form.control_on.label.text }}
+                            </label>
+                    </div>
+                {% else %}
+                    <div id="{{ c_loop+'_'+action+'_div' }}">
+                    {% for field in form if 'CSRFTokenField' not in field.type %}
+                        {{ loop.cycle('<div class="row justify-content-md-center">','')|safe }}
+                            {% if field.type == 'BooleanField' %}
+                            <div class="col-6 btn-group"
+                                 data-toggle="buttons"
+                                 id="{{ c_loop+'_'+action+'_div' }}">
+                                <label
+                                    class="btn btn-secondary btn-block"
+                                    for="{{ field.id }}">
+                                        {{ field(class="btn btn-primary",autocomplete="off", **kwargs)|safe }}
+                                        {{ field.label.text }}
+                                </label>
+                            </div>
+                            {% else %}
+                                <div class="col">
+                                    <div class="form-group row justify-content-md-center">
+
+                                        {% if loop.last %}
+                                            {{ field.label(class="col-3 col-form-label") }}
+                                            <div class="col-3">
+                                        {% else %}
+                                            {{ field.label(class="col-6 col-form-label") }}
+                                            <div class="col-6 col-sm-auto">
+                                        {% endif %}
+                                                {{ field(class="form-control",**kwargs)|safe }}
+                                            </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {{ loop.cycle('','</div>')|safe }}
+                        {% if loop.last %}
+                            {% if loop.index % 2 != 0 %}
+                                </div>
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                    <div class="form-group row justify-content-md-center">
+                        <div class="col-12 col-sm-auto">
+                            <input type=submit value=Send class="btn btn-primary">
+                         </div>
+                    </div>
+                    </div>
+                {% endif %}
+        </form>
+    </div>
+{% endmacro %}

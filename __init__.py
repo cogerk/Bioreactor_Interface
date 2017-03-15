@@ -6,8 +6,14 @@ Modified By: Kathryn Cogert
 Stolen From: Tim Dobbs (https://github.com/tsdobbs/encyclopedia_brunch)
 Stolen On: Feb 28 2017
 """
-# TODO:CRIO Side, fix NH4 Control
-# TODO: CRIO Side dynamic/static Na Adjustment
+# TODO: If cRIO 404, special error
+# TODO: CRIO Side general debug
+# TODO: CRIO Side, assign celings to VFD and MFC
+# TODO: ISE Manager
+# TODO: Calibration protocol
+# TODO: Offline measurement entry + Biomass activity
+
+
 
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
@@ -24,7 +30,6 @@ app_secret_key = app_secret_key[0]
 app.secret_key = app_secret_key
 app.config.from_object('config')
 db = SQLAlchemy(app)
-test = 'a test variable'
 # TODO: Login Page
 #login_manager = LoginManager()
 #login_manager.init_app(app)

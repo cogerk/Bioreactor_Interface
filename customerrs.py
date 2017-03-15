@@ -26,3 +26,8 @@ class MissingKey(Exception):
     pass
 
 
+class CannotReachController(Exception):
+    """
+    Was unable to reach constroller
+    """
+    pass

@@ -1,153 +1,210 @@
 <!doctype html>
-<!-- TODO: Pretty formatting + CSS checkboxes are red/green for off/on -->
 {% from "_formhelpers.html" import render_field %}
-<title>Reactor 1 Control Panel</title>
-<body>
-    <div class="messages"></div>
-    <!-- This block displays status of last command sent -->
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <ul class=flashes>
-        {% for message in messages %}
-          <li>{{ message }}</li>
-        {% endfor %}
-        </ul>
-      {% endif %}
-    {% endwith %}
+{% from "_controlformhelpers.html" import render_control_fields %}
+<head>
+    <title>Reactor {{reactor[0]}} Control Panel</title>
+    <link
+        href="{{
+            url_for('static', filename='css/bootstrap.min.css') }} "
+        rel="stylesheet">
+    <link
+        href="{{
+            url_for('static', filename='css/custom.css') }} "
+        rel="stylesheet">
+    <script
+        src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js">
+    </script>
+    <script
+        type=text/javascript
+        src="{{ url_for('static', filename='jquery.js') }}"></script>
+    <script
+        src="https://npmcdn.com/tether@1.2.4/dist/js/tether.min.js">
+    </script>
+    <script
+        src="{{url_for('static', filename='js/bootstrap.min.js')}}">
+    </script>
+    <link
+            href="http://cdn.pydata.org/bokeh/release/bokeh-0.12.4.min.css"
+            rel="stylesheet"
+            type="text/css">
+    <link
+        href="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.4.min.css"
+        rel="stylesheet"
+        type="text/css">
+    <script
+        src="http://cdn.pydata.org/bokeh/release/bokeh-0.12.4.min.js">
+    </script>
+    <script
+        src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.4.min.js">
+    </script>
+</head>
+<body class="container">
+    <div id="Title">
+        <h1>
+            Reactor {{reactor[0]}} Control Panel
+        </h1>
     </div>
-    <div class="control_forms">
+    <div class="row" id="status">
+        <h2 class="col-2">Status:</h2>
+        <!-- This block displays status of last command sent -->
+        <h2 id="load" class="col-2">Loading...</h2>
+    </div>
+    <div class="row" id="messages">
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <ul class=flashes>
+            {% for message in messages %}
+              <li>{{ message }}</li>
+            {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
+    </div>
+    <div id = "Constants" class="row bottom-buffer">
+        <div class="col-6">
+            <a href="{{reactor[0]}}/CalConstants">
+                Change Calibration Constants
+            </a>
+        </div>
+        <div class="col-6">
+            <a href="{{reactor[0]}}/Constants">
+                Change Other Constants
+            </a>
+        </div>
+    </div>
         <!-- Every Control Loop (i.e. pH, DO, SBR) gets it's own section -->
-        {% for c_loop in all_loops %}
-        <div class="loop">
-            <!-- Makes div for every control loop's on/off switch, parameter settings, or manual controls -->
+    <div class="row justify-content-center" id="top_matter">
+        <div class="col-12" id="Graph">
+        {{ graphdiv|safe }}
+        </div>
+    </div>
+    {% for c_loop in all_loops  %}
+        {{ loop.cycle('<div class="row">','')|safe }}
+            <div id="{{c_loop}}" class="col control-loop highpadding">
             {% for c_action in all_actions %}
                 {% if c_action != 'Status'  %}
-                <div class="{{c_action}}">
-                    <form id="{{ c_loop+'_'+c_action }}" method="post">
-                        <!-- Renders each field in form as defined in the form dictionary -->
-                        {{loop_form_dict[c_loop][c_action].csrf_token}}
-                        {% if c_action == 'Switch' %}
-                            {{ render_field(loop_form_dict[c_loop][c_action]['control_on']) }}
-                        {% else %}
-                            {% for subfield in loop_form_dict[c_loop][c_action]%}
-                                {% if (subfield.type != 'SubmitField') and (subfield.type != 'CSRFTokenField') %}
-                                    {{ render_field(subfield) }}
-                                {% endif %}
-                            {% endfor %}
-                        {% endif %}
-                        {{ loop_form_dict[c_loop][c_action].submit }}
-                    </form>
-                </div>
+                    {{ render_control_fields(c_action,c_loop,loop_form_dict[c_loop][c_action]) }}
                 {% endif %}
             {% endfor %}
-        </div>
-        {% endfor %}
-    </div>
-    <div class="Graph">
-        {{ graphdiv|safe }}
-    </div>
-    <div class = "Constants">
-        <a href="/R1/CalConstants">Change Reactor Calibration Constants</a>
-        <br>
-        <a href="/R1/Constants">Change Other Reactor Constants</a>
+            </div>
+        {{ loop.cycle('','</div>')|safe }}
+        {% if loop.last and not loop.first and loop.index % 2 != 0 %}
+            </div>
+        {% endif %}
+    {% endfor %}
     </div>
 </body>
-<link
-    href="http://cdn.pydata.org/bokeh/release/bokeh-0.12.4.min.css"
-    rel="stylesheet" type="text/css">
-<link
-    href="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.4.min.css"
-    rel="stylesheet" type="text/css">
-
-<script src="http://cdn.pydata.org/bokeh/release/bokeh-0.12.4.min.js"></script>
-<script src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.4.min.js"></script>
-<script type=text/javascript src="{{
-  url_for('static', filename='jquery.js') }}"></script>
 <!-- This contains the script to build the embedded graph -->
 {{ graphscript|safe }}
 <script>
 $(document).ready(function(){
-
-
     // This function enables/disables manual controls if control switch is off/on
-    $.getJSON('{{reactor[0]}}/current', function(result){ // Get Data
-        $.each(result, function(key, val){  // loop through control loops
-            // On page load, populate form values with current values
+    function loadPage(){
+        $.getJSON('{{reactor[0]}}/current', function (result){
+            $.each(result, function(key, val){  // loop through control loops
+                // On page load, populate form values with current values
 
-            // Auto control on/off
-            var switchformstr = key.concat('_Switch');
-            var switchval = val[switchformstr]
-            $('#'+switchformstr+'-control_on').attr('checked', switchval);
+                // Auto control on/off
+                var switchformstr = key.concat('_Switch')
+                var switchval = val[switchformstr]
+                $('#'+switchformstr+'-control_on').prop('checked', switchval);
 
-            // Manual Control Values
-            var manformstr = key.concat('_Manual');
-            var manvals = val[manformstr]
-            $('#'+manformstr+' *').filter(':input').each(function(){
-                var formele = this
-                $.each(manvals, function(key, val){
-                    if (formele.id.indexOf(val[0]) > -1) {
-                        if ($(formele).is(':checkbox')){
-                            $(formele).attr('checked', val[1])
+                if (switchval) {
+                    $('#'+switchformstr+'-control_on').closest('label').prop('class', 'btn btn-block btn-lg btn-success active')
+                }
+                else {
+                    $('#'+switchformstr+'-control_on').closest('label').prop('class', 'btn btn-block btn-lg btn-danger')
+                }
+
+                // Manual Control Values
+                var manformstr = key.concat('_Manual');
+                var manvals = val[manformstr]
+                $('#'+manformstr+'_Form *').filter(':input').each(function(){
+                    var formele = this
+                    $.each(manvals, function(key, val){
+                        if (formele.id.indexOf(val[0]) > -1) {
+                            if ($(formele).is(':checkbox')){
+                                if (val[1]) {
+                                    $($(formele).closest('label')).prop('class', 'btn btn-block btn-success active')
+                                }
+                                else {
+                                    $($(formele).closest('label')).prop('class', 'btn btn-block btn-danger')
+                                };
+                                $(formele).prop('checked', val[1])
+                            }
+                            else {
+                                $(formele).val(val[1])
+                            };
+                        };
+                    });
+                });
+
+                // Control Parameters
+                var setparamformstr = key.concat('_SetParams');
+                var setparamvals = val[setparamformstr]
+                $('#'+setparamformstr+'_Form *').filter(':input').each(function(){
+                    var formele = this
+                    $.each(setparamvals, function(key,val){
+                        if (formele.id.indexOf(val[0]) > -1) {
+                            if ($(formele).is(':checkbox')){
+                                if (val[1]) {
+                                    $($(formele).closest('label')).prop('class', 'btn btn-block btn-success  active')
+                                }
+                                else {
+                                    $($(formele).closest('label')).prop('class', 'btn btn-block btn-danger')
+                                };
+                                $(formele).prop('checked', val[1])
+                            }
+                            else {
+                                $(formele).val(val[1])
+                            };
+                        };
+                    });
+                });
+
+                // If automatic control on, disable manual input
+                if (switchval){
+                     // loop through manual control form fields
+                    $('#'+manformstr+'_Form *').filter(':input').each(function(){
+                        // disable all manual control form fields
+                        if ($(this).is(':checkbox')){
+                            $(this).closest('label').attr("disabled", switchval)
                         }
                         else {
-                            $(formele).attr('value', val[1])
+                            $(this).attr("disabled", switchval)
                         };
-                    };
-                });
+                    });
+                };
             });
-
-            // Control Parameters
-            var setparamformstr = key.concat('_SetParams');
-            var setparamvals = val[setparamformstr]
-            $('#'+setparamformstr+' *').filter(':input').each(function(){
-                var formele = this
-                $.each(setparamvals, function(key,val){
-                    if (formele.id.indexOf(val[0]) > -1) {
-                        if ($(formele).is(':checkbox')){
-                            $(formele).attr('checked', val[1])
-                        }
-                        else {
-                            $(formele).attr('value', val[1])
-                        };
-                    };
-                });
-            });
-
-            // If automatic control on, disable manual input
-            if (switchval){
-                 // loop through manual control form fields
-                $('#'+manformstr+' *').filter(':input').each(function(){
-                    // disable all manual control form fields
-                    $(this).attr("disabled", true)
-                });
-            }
-            else{
-                $('#'+manformstr+' *').filter(':input').each(function(){
-                    // otherwise enable all manual control form fields
-                    $(this).attr("disabled", false)
-                });
-            };
         });
-    });
+    };
+    $.when(loadPage()).then($('#load').remove())
 
+    // Update manual values that are auto controlled at the moment
     setInterval(
         function () {
             $.getJSON('{{reactor[0]}}/current', function(result){
                 $.each(result, function(key, val){  // loop through control loop switch
-                var switchformstr = key.concat('_Switch');
-                var switchval = val[switchformstr]
-                var manformstr = key.concat('_Manual')
-                var manvals = val[key+'_Manual']
+                    var switchformstr = key.concat('_Switch');
+                    var switchval = val[switchformstr]
+                    var manformstr = key.concat('_Manual')
+                    var manvals = val[key+'_Manual']
                     if (switchval){
-                        $('#'+manformstr+' *').filter(':input').each(function(){
+                        $('#'+manformstr+'_Form *').filter(':input').each(function(){
                             var formele = this
                             $.each(manvals, function(key,val){
                                 if (formele.id.indexOf(val[0]) > -1) {
                                     if ($(formele).is(':checkbox')){
-                                        $(formele).attr('checked', val[1])
+                                        if (val[1]) {
+                                            $($(formele).closest('label')).prop('class', 'btn btn-block btn-success active')
+                                        }
+                                        else {
+                                            $($(formele).closest('label')).prop('class', 'btn btn-block btn-danger')
+                                        };
+                                        $(formele).prop('checked', val[1])
                                     }
                                     else {
-                                        $(formele).attr('value', val[1])
+                                        $(formele).val(val[1])
                                     };
                                 }
                             });
@@ -158,9 +215,24 @@ $(document).ready(function(){
         },
     {{ update }});
 
-    // This function automatically send the control on/off function if any control loop switch is clicked.
-    $("*[id*=control_on]:visible").click(function(event){ //
-        $(event.target.form).submit();
+    // Let user know when value hasn't been submitted
+
+    $("input[type=text]").change(function() {
+        $(this).parent().prop('class', $(this).parent().prop('class') + ' has-warning')
+        $(this).prop('class', $(this).prop('class')+ ' form-control-warning')
+        console.log($(this).parent().prop('class'))//, 'form-group has-success')
+        console.log($(this).prop('class'))//,'form-group form-group-success')
+        //$($($(this).parents()).filter('form')[0]).prop('class', 'form-group has-success')
+        //$(this).prop('class','form-group form-group-success')
     });
+
+    });
+        // This function automatically send the control on/off function if any control loop switch is clicked.
+    $("*[id*=control_on]").closest('label').click(function(){ //
+        console.log(this)
+        var that = this
+        setTimeout(function() {
+        $(that.form).submit()
+        }, 1)
 });
 </script>

@@ -1,39 +1,86 @@
+<!-- TODO: Calibration Graph & Signal Reader -->
+<!-- TODO: HTML COmments -->
 <!DOCTYPE html>
 {% from "_formhelpers.html" import render_field %}
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Change Reactor 1 Calibration Constants</title>
+    <title>Calibrate Reactor {{reactor}} Signals</title>
+    <link
+      href="{{
+        url_for('static', filename='css/bootstrap.min.css') }} "
+      rel="stylesheet">
+    <link
+      href="{{
+        url_for('static', filename='css/custom.css') }} "
+      rel="stylesheet">
+    <script
+      src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js">
+    </script>
+    <script
+      type=text/javascript
+      src="{{ url_for('static', filename='jquery.js') }}"></script>
+    <script
+      src="https://npmcdn.com/tether@1.2.4/dist/js/tether.min.js">
+    </script>
+    <script
+      src="{{url_for('static', filename='js/bootstrap.min.js')}}">
+    </script>
+    <link
+      href="http://cdn.pydata.org/bokeh/release/bokeh-0.12.4.min.css"
+      rel="stylesheet"
+      type="text/css">
+    <link
+      href="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.4.min.css"
+      rel="stylesheet"
+      type="text/css">
+    <script
+      src="http://cdn.pydata.org/bokeh/release/bokeh-0.12.4.min.js">
+    </script>
+    <script
+      src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.4.min.js">
+    </script>
 </head>
-<body>
-    <div class="messages"></div>
+<body class="container">
+     <div id="Title" class="row">
+        <h1>
+            Reactor {{reactor}} Calibration
+        </h1>
+    </div>
     <!-- This block displays status of last command sent -->
     {% with messages = get_flashed_messages() %}
       {% if messages %}
-        <ul class=flashes>
-        {% for message in messages %}
-          <li>{{ message }}</li>
-        {% endfor %}
-        </ul>
+        <h2 class="row">
+          Result:
+        </h2>
+        <div id="messages" class="row">
+          <ul id="flashes">
+          {% for message in messages %}
+            <li>{{ message }}</li>
+          {% endfor %}
+          </ul>
+        </div>
       {% endif %}
     {% endwith %}
-    </div>
-    <div method ="constants">
-        <!-- This block the form -->
-        <form method=post>
-          <dl>
+    <div id ="matter" class="row">
+      <!-- This block the form -->
+      <form method=post class="col-6">
+        <dl>
           {{ form.csrf_token }}
-            {{ render_field(form.signal) }}
-            {{ render_field(form.slope) }}
-            {{ render_field(form.intercept) }}
-          </dl>
-          <p><input type=submit value=Send></p>
-        </form>
+          {{ render_field(form.signal) }}
+          {{ render_field(form.slope) }}
+          {{ render_field(form.intercept) }}
+        </dl>
+        <p class="form-group row justify-content-center">
+          <input type=submit value=Send class="btn btn-primary">
+        </p>
+      </form>
+      <div id="graph" class="col-6">
+        {{ graphdiv|safe }}
+      </div>
     </div>
 </body>
 </html>
-<script type=text/javascript src="{{
-  url_for('static', filename='jquery.js') }}"></script>
+{{ graphscript|safe }}
 <script>
 $(document).ready(function(){
     $("#signal").on('change', function() {

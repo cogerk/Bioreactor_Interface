@@ -35,6 +35,8 @@ def get_signal_list(ip, port, reactorno):
     signal_ele_tree = signals.findall('Name')
     signal_list = []
     for signal in signal_ele_tree:
+        if 'Timestamp' in signal.text:
+            continue
         if 'VFD' in signal.text:
            signal_list.append(signal.text+ ' RPM')
            signal_list.append(signal.text+ ' Signal')

@@ -36,20 +36,17 @@ def translate_to_ws(reactorno,
         Array of strings is [GET Request for slope, GET request for intercept]
     """
     # To eventually append to command strings
-    slopeint_strs = ['%20Slope', '%20Intercept']
     r_name = 'R'+str(reactorno)
     vi_name = r_name + 'SetCalibrateConstant'
     # Both cmd strings will start wih
-    cmd_strs = ['?Constant=' + r_name + '%20' + signal] * 2
+    cmd_str = '?Signal=' + signal + '&Write='
+    cmd_str = cmd_str.replace(' ', '%20')
     # First iteration builds slope cmd string, second builds intercept cmd str
-    for idx, strs in enumerate(cmd_strs):
-        strs += slopeint_strs[idx] + '&Write='
-        if to_write is not None:  # Write Mode
-            strs += '1&ToWrite=' + str(to_write[idx])
-        else:  # Read Mode
-            strs += '0&ToWrite=0'
-        cmd_strs[idx] = strs
-    return vi_name, cmd_strs
+    if to_write is not None:  # Write Mode
+        cmd_str += '1&Slope=' + str(to_write[0]) + '&Intercept=' + str(to_write[1])
+    else:  # Read Mode
+        cmd_str += '0&Slope=0&Intercept=0'
+    return vi_name, cmd_str
 
 
 def submit_to_reactor(ip, port, reactorno, signal, values):
@@ -60,33 +57,36 @@ def submit_to_reactor(ip, port, reactorno, signal, values):
     :param reactorno: int, # of the reactor
     :param signal: str, the name of the signal to affected
     :param values: float list, [Slope, Intercept], if None, read mode
-    :return: array of str/int, return status from cRIO/if read mode return vals
+    :return: (float, float), slope & intercept.  If
     """
     # Translate to vi name & command string that cRIO can read
-    [vi, cmdstrs] = translate_to_ws(reactorno,
-                                    signal,
-                                    values)
+    vi, cmdstr = translate_to_ws(reactorno, signal, values)
     # Statuses will start with this (if write mode)
-    statuses = ['Slope: ', 'Intercept: ']
-    # First iteration sends slope command, second intercept command
-    for idx, cmd in enumerate(cmdstrs):
-        # Build the URL to send & send it
-        get_url = utils.build_url(ip, port, reactorno, vi, cmd)
-        result = urllib.request.urlopen(get_url).read()
-        # Result is an XML tree, parse this to see if command was sent
-        root = ElementTree.fromstring(result)
-        status = 'No Command Submitted'
-        for terminal in root:
-            if terminal.find('Name').text == 'ControlStatus':
-                status = terminal.find('Value').text  # Returns status
-        # If command sent specified read mode, get the value returned
-        if status == 'Read Mode':
-            for terminal in root:
-                status = terminal.find('Value').text
-            statuses[idx] = status  # Replace existing string in read mode
-        else:
-            statuses[idx] += status  # Append tostring above in write mode
-    return statuses
+     # Build the URL to send & send it
+    get_url = utils.build_url(ip, port, reactorno, vi, cmdstr)
+    result = urllib.request.urlopen(get_url).read()
+    # Result is an XML tree, parse this to see if command was sent
+    root = ElementTree.fromstring(result)
+    # TODO: How to parse XML to return slope & intercept & statuses if error
+    status = [None, None]
+    intercept = None
+    slope = None
+    for terminal in root:
+        if 'Status' in terminal.find('Name').text:
+            status_xml = terminal.find('Value')
+            status_vals_xml = status_xml.findall('Value')
+            for idx, each in enumerate(status_vals_xml):
+                status[idx] = each.text
+        if 'Intercept' in terminal.find('Name').text:
+            intercept = terminal.find('Value').text
+        if 'Slope' in terminal.find('Name').text:
+            slope = terminal.find('Value').text
+    if intercept is None or intercept == 'Inf':
+        intercept = status[0]
+    if slope is None or slope == 'Inf':
+        slope = status[-1]
+    # If command sent specified read mode, get the value returned
+    return status, slope, intercept
 
 
 def get_all_current(ip, port, reactorno):
@@ -99,9 +99,11 @@ def get_all_current(ip, port, reactorno):
     """
     all_slopes = {}
     all_ints = {}
-    signal_list = rctr.get_signals(ip, port, reactorno)
+    signal_list = rctr.get_signal_list(ip, port, reactorno)
     for signal in signal_list:
-        vals = submit_to_reactor(ip, port, reactorno, signal, None)
-        all_slopes[signal[0]] = vals[0]
-        all_ints[signal[0]] = vals[1]
+        stats, slope, intercept = submit_to_reactor(ip, port, reactorno, signal, None)
+        all_slopes[signal] = slope
+        all_ints[signal] = intercept
     return signal_list, all_slopes, all_ints
+
+

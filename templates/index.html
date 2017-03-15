@@ -1,27 +1,65 @@
 <!DOCTYPE html>
 {% from "_formhelpers.html" import render_field %}
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Select Reactor</title>
-</head>
-<body>
-<form method=post>
-  <dl>
-  {{ form.csrf_token }}
-  {{ render_field(form.reactor_no) }}
-  </dl>
-  <dl>Principle: <div id="Principle">Loading...</div></dl>
-  <dl>Email For Alarms: <div id="Email">Loading...</div></dl>
-  <p><input type=submit value=Select>  <input type=submit value=Edit></p>
-</form>
-<a href="/admin">Admin</a>
-{% block body %}{% endblock %}
-</body>
-</html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Select Reactor</title>
+        <link href="static/css/bootstrap.min.css" rel="stylesheet">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <script src="js/bootstrap.min.js"></script>
+    </head>
+    <body class="container">
+    {% block body %}
+    {{ script|safe }}
+    <div class="row">
+        <h1>Select a Reactor</h1>
+    </div>
+    <form method=post>
+        {{ form.csrf_token }}
+        {{ render_field(form.reactor_no) }}
+        <div class="form-group row">
+            <label for="Principle" class="col-sm-4 col-form-label">
+                Principle
+            </label>
+            <div id="Principle" class="col-sm-5">
+                Loading...
+            </div>
+        </div>
+        <div class="form-group row">
+            <label for="Email" class="col-sm-4 col-form-label">
+                Email For Alarms
+            </label>
+            <div id="Email" class="col-sm-5">
+                Loading...
+            </div>
+        </div>
+        <div class="form-group row">
+            <div class="col-sm-2">
+                <input type=submit value=Select class="btn btn-primary">
+            </div>
+            <div class="col-sm-2">
+                <a id="Edit_Link"
+                   href="/admin/reactor/edit?url=%2Fadmin%2Freactor%2F&id={{ form.reactor_no.default[0] }}"
+                   class="btn btn-primary">
+                        Edit Reactor
+                </a>
+            </div>
+        </div>
+    </form>
 
-<script type=text/javascript src="{{
-  url_for('static', filename='jquery.js') }}"></script>
+    <div class="form-group row justify-content-left">
+        <div class="col-sm-3">
+            <a id="Admin_Link"
+               href="/admin"
+               class="btn btn-primary">
+                   Admin
+            </a>
+        </div>
+    </div>
+
+    {% endblock %}
+    </body>
+</html>
 <script>
 // TODO: Code here to auto update what is displayed in other fields based off of reactor selection
 $(document).ready(function(){
@@ -47,7 +85,8 @@ $(document).ready(function(){
     $('#reactor_no').on('change', function() {
         $('#Principle').html('Loading...');
         $('#Email').html('Loading...');
-        var name = this.value // This is the currently selected constant
+        var r_no = this.value // This is the currently selected constant
+        $('#Edit_Link').attr('href','/admin/reactor/edit?url=%2Fadmin%2Freactor%2F&id='+r_no)
         for ( idx in js_dict ){
             if (r_no == js_dict[idx][0]){
                 $('#Principle').html(js_dict[idx][1]);

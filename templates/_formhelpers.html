@@ -1,11 +1,19 @@
-{% macro render_field(field,value) %}
-<dt>
-    {{ field.label }}
-    <dd>
-    {% if value %}
-        {{ field(value=value,checked="",**kwargs)|safe }}
+
+
+{% macro render_field(field) %}
+    <div class="form-group row">
+    {% if field.type == "BooleanField" %}
+        <div class="btn-group" data-toggle="buttons">
+            <label class="btn btn-primary highpadding" for="{{ field.id }}">
+                {{ field(class="btn btn-primary",autocomplete="off", **kwargs)|safe }}
+                {{ field.label.text }}
+            </label>
+        </div>
     {% else %}
-        {{ field(value=value,**kwargs)|safe }}
+        {{ field.label(class="col-sm-4 col-form-label") }}
+        <div class = "col-sm-5">
+            {{ field(class="form-control",**kwargs)|safe }}
+        </div>
     {% endif %}
     {% if field.errors %}
     <ul class=errors>
@@ -14,6 +22,6 @@
     {% endfor %}
     </ul>
   {% endif %}
-  </dd>
+  </div>
 {% endmacro %}
 

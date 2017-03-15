@@ -33,14 +33,9 @@ def get_submitted(form, current):
             # Store each command in a seperate command dictionary
             command = entry[entry.index('-')+1:]
             commands_dict[command] = form[entry]
+            print(commands_dict)
     # Special rules for SBR set params
-    """
-    if isinstance(all_commands_dict, list):
-        sbr_dict = {}
-        for phase, length in all_commands_dict:
-            sbr_dict.setdefault(phase, []).append(length)
-        all_commands_dict = sbr_dict
-    """
+
     if action == 'Switch':  # If switch, only expecting one parameter, no dict
         if 'control_on' in commands_dict:
             all_commands_dict = True
@@ -61,7 +56,7 @@ def get_submitted(form, current):
     return loop, action, all_commands_dict
 
 
-def translate_to_ws(reactorno, loop, action, params=None):
+def translate_to_ws(reactorno, loop, action, params=None, current=None):
     """
     Translates control loop command to VI name and command str to pass as GET
     A VI is a labview script that exists in a labview webservice (ws) on cRIO
@@ -69,6 +64,7 @@ def translate_to_ws(reactorno, loop, action, params=None):
     :param loop: str, Control loop requested
     :param action: str, Status, Switch, Manual, or SetParams (for auto control)
     :param params: dict, parameters to submit to reactor in get_inputs() format
+    :param current: dict, current values if write mode
     :return: str or array of str, the get URL(s), plural if loop is SBR
     """
     r_name = 'R'+str(reactorno)  # VIs are prefaced with R#
@@ -83,7 +79,9 @@ def translate_to_ws(reactorno, loop, action, params=None):
        return vi_to_run, command
     if action != 'Status':
         # SBR loop has special rules for cmd str b/c so many inputs
-        if loop == 'SBR' and action != 'Switch':
+        params = [x for x in params if x not in current[loop][loop+'_'+action]]
+        print(params)
+        if loop == 'SBR':
             command = [command+'Label='] * len(params)
             for idx, each in enumerate(params):
                 if type(each[1]) is bool:
@@ -94,13 +92,13 @@ def translate_to_ws(reactorno, loop, action, params=None):
                 command[idx] = command[idx].replace(' ', '%20')
         else:
             for idx, each in enumerate(params):
-                if type(params[each]) is bool:
+                if type(each[1]) is bool:
                     # URL requires booleans to be 1 or 0 not True/False
-                    val = int(params[each])
+                    val = int(each[1])
                 else:
-                    val = params[each]
+                    val = each[1]
                 # Convert command to something cRIO will know and append.
-                each = utils.convert_to_localvar(each)
+                each = utils.convert_to_localvar(each[0])
                 command = command + each + '=' + str(val) + '&'
                 # Replace all spaces with %20 so that it makes sense as URL
                 command = command.replace(' ', '%20')
@@ -110,19 +108,25 @@ def translate_to_ws(reactorno, loop, action, params=None):
     return vi_to_run, command
 
 
-def submit_to_reactor(ip, port, reactorno, loop, action, params=None):
+def submit_to_reactor(ip, port, reactorno, loop, action, params=None, current=None):
     """
     Submits new control command as a POST request to reactor and returns status
     :param ip: str, the cRIO IP address
     :param port: int, the port of the webservice
     :param reactorno: int, # of the reactor
-    :param submitted_form: obj, the form given from the POST request.
-    :return: str, the
+    :param loop: str, control loop in question
+    :param action: str, action to take
+    :param params: dict, parameters to write
+    :param current: dict, current values before we submit to reactor
+    :return: status, str, write success?, if status, return dict
     """
     # Translate to vi name & command string that cRIO can read
-    [vi, cmdstrs] = translate_to_ws(reactorno, loop, action, params)
+    [vi, cmdstrs] = translate_to_ws(reactorno, loop, action, params, current)
     # Build the URL to send & send it
     if action != 'Status':
+        if cmdstrs == []:
+            status = 'Nothing written, no new values submitted via form.'
+            return status
         if not isinstance(cmdstrs, list):
             get_url = utils.build_url(ip, port, reactorno, vi, cmdstrs)
             print(get_url)
@@ -206,6 +210,7 @@ def get_current(ip, port, reactorno):
     :return: dict of slopes, dict of intercepts
     """
     current = {}
+    print('Getting Current Vals...')
     loop_list = rctr.get_loops(ip, port, reactorno)
     for loop in loop_list:
         current[loop] = submit_to_reactor(ip, port, reactorno, loop, 'Status')

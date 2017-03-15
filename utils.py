@@ -3,6 +3,7 @@ Supporting utility functions for remotecontrol panel
 Written By: Kathryn Cogert
 Jan 25 2017
 """
+from __init__ import models
 
 # >Define Constants
 # List of actions you can take on a control Loop
@@ -29,6 +30,16 @@ def build_url(ip, port, reactorno, vi_to_run, command=''):
     r_name = 'R'+str(reactorno)
     url = 'http://'+ip+':'+str(port)+'/'+r_name+'/'+vi_to_run+command
     return url
+
+
+def get_controller_info(reactorno, debug=False):
+    reactor = models.Reactor.query.filter_by(idx=reactorno).first()
+    ip = reactor.controller.ip
+    if debug:
+        port = reactor.controller.debug_port
+    else:
+        port = reactor.controller.port
+    return ip, port
 
 
 def convert_to_datatype(xmlarray):

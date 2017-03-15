@@ -1,0 +1,21 @@
+.bottom-buffer {
+    margin-bottom:20px;
+}
+
+.top-buffer {
+    margin-top:16px;
+}
+
+.lowpadding {
+   padding: 5px !important;
+}
+
+.highpadding {
+   padding: 16px !important;
+}
+
+.control-loop {
+    border: 2px solid grey;
+    border-radius: 5px;
+    margin: 10px;
+}

@@ -1,0 +1,86 @@
+
+{% macro render_control_fields(action,c_loop,form) %}
+    <div
+        class="form-group row justify-content-md-center"
+        id = "{{ c_loop+'_'+action + '_div'}}">
+        <form class="col-12 col-sm-auto" id="{{ c_loop+'_' + action + '_Form'}}" method="post">
+            {{form.csrf_token}}
+                {% if action == 'Switch' %}
+                    <div
+                        class="btn-group top-buffer"
+                        data-toggle="buttons"
+                        id="{{ c_loop+'_'+action+'_btn' }}">
+                            <label
+                                class="btn btn-secondary btn-lg"
+                                for="{{ form.control_on.id }}">
+                                    {{ form.control_on(
+                                        class="btn btn-secondary btn-lg",
+                                        autocomplete="off",
+                                        **kwargs)
+                                        |safe }}
+                                    {{ form.control_on.label.text }}
+                            </label>
+                    </div>
+                {% else %}
+                    {% if c_loop == 'SBR' and action == 'SetParams' %}
+                            <div class="row justify-content-md-center">
+                                <div class="col-6">
+                                    Phase
+                                </div>
+                                <div class="col-6">
+                                    Length, min
+                                </div>
+                            </div>
+                        {% for field in form if 'CSRFTokenField' not in field.type %}
+                                <div class="row justify-content-md-center">
+                                    {{ field.label(class="col-6 col-form-label") }}
+                                        <div class="col-6">
+                                            {{ field(class="form-control",**kwargs)|safe }}
+                                        </div>
+                                </div>
+                        {% endfor %}
+                    {% else %}
+                        {% for field in form if 'CSRFTokenField' not in field.type %}
+                            {{ loop.cycle('<div class="row justify-content-center">','')|safe }}
+                            {% if field.type == 'BooleanField' %}
+                                <div class="col-6 btn-group lowpadding"
+                                     data-toggle="buttons"
+                                     id="{{ c_loop+'_'+action+'_div' }}">
+                                    <label
+                                        class="btn btn-secondary btn-block"
+                                        for="{{ field.id }}">
+                                            {{ field(class="btn btn-primary", autocomplete="off", **kwargs)|safe }}
+                                            {{ field.label.text }}
+                                    </label>
+                                </div>
+                            {% else %}
+                                {% if loop.first and loop.last  %}
+                                    {{ field.label(class="col-6 col-form-label") }}
+                                    <div class="col-4">
+                                        {{ field(class="form-control",**kwargs)|safe }}
+                                    </div>
+                                    </div>
+                                {% else %}
+                                    {{ field.label(class="col-3 col-form-label") }}
+                                    <div class="col-3">
+                                        {{ field(class="form-control",**kwargs)|safe }}
+                                    </div>
+                                {% endif %}
+                            {% endif %}
+                            {{ loop.cycle('','</div>')|safe }}
+                            {% if loop.last and not loop.first and loop.index % 2 != 0 %}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                        <div class="row justify-content-md-center">
+                            <div class="col-12 col-md-auto">
+                                <div class="btn-group top-buffer">
+                                    <input type=submit value=Send class="btn btn-primary">
+                                </div>
+                             </div>
+                        </div>
+                {% endif %}
+        </form>
+    </div>
+{% endmacro %}
