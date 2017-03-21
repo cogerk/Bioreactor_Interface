@@ -1,45 +1,15 @@
 $(document).ready(function(){
-    // This function enables/disables manual controls if control switch is off/on
-    $.getJSON('R1/Current', function(result){ // Get Data
-        $.each(result, function(key, val){  // loop through control loop switch
-            // build id of manual & switch control form id given a loop switch id
-            var manformstr = key.concat('_Manual');
-            var switchformstr = key.concat('_Switch');
-            var switchval = val[switchformstr]
-            $(switchformstr).prop('checked', switchval);
-            console.log(val)
-            if (switchval){
-                $(val).each(function(){ // loop through manual control form fields
-                    // disable all manual control form fields
-                    $(this).attr("disabled", true)
-                });
-            }
-            else{
-                $('#'+manformstr).filter(':input').each(function(){
-                    // otherwise enable all manual control form fields
-                    $(this).attr("disabled", false)
-                });
-            };
-        });
-    });
-    setInterval(
-        function () {
-            $.getJSON('R1/Current', function(result){
-                $.each(result, function(key, val){  // loop through control loop switch
-                    var switchformstr = key.concat('_Switch');
-                    var switchval = val[switchformstr]
-                    if (switchval){
-                    }
-                    else {
+    $("#signal").on('change', function() {
+    // This function gets current slopes/ints of a signal and returns it to form when a new signal is selected
+        // Current values are sent from server on page load as {#slopes#} & {#ints#}
+        // This converts that dictionary of current values to js dict
+        js_ints = {{ ints|tojson|safe }}
+        js_slopes = {{ slopes|tojson|safe }}
+        js_graphs = {{ scripts|tojson|safe }}
 
-                    };
-                });
-            });
-        )
-    100);
-
-    // This function automatically send the control on/off function if any control loop switch is clicked.
-    $("*[id*=control_on]:visible").click(function(event){ //
-        $(event.target.form).submit();
+        // Change values
+        $("#slope").val(js_graphs[this.value]);
+        $("#intercept").val(js_ints[this.value]);
+        $('#graph).html(js_graphs[this.value]);
     });
 });

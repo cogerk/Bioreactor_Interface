@@ -67,7 +67,6 @@ def submit_to_reactor(ip, port, reactorno, signal, values):
     result = urllib.request.urlopen(get_url).read()
     # Result is an XML tree, parse this to see if command was sent
     root = ElementTree.fromstring(result)
-    # TODO: How to parse XML to return slope & intercept & statuses if error
     status = [None, None]
     intercept = None
     slope = None

@@ -19,3 +19,22 @@
     border-radius: 5px;
     margin: 10px;
 }
+
+.bokeh-titles {
+font-size: 20pt;
+font-family: Helvetica;
+}
+
+.bokeh-labels {
+font-size: 14pt;
+font-family: Helvetica;
+}
+
+.bk-slider-parent {
+font-size:20px !important;
+}
+
+.bk-slider-parent input[type="text"] {
+font-size:20px !important;
+line-height: 100% !important;
+}

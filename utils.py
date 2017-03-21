@@ -1,9 +1,10 @@
 """
-Supporting utility functions for remotecontrol panel
+Supporting utility functions for remote control panel
 Written By: Kathryn Cogert
 Jan 25 2017
 """
 from __init__ import models
+import customerrs
 
 # >Define Constants
 # List of actions you can take on a control Loop
@@ -50,11 +51,15 @@ def convert_to_datatype(xmlarray):
     """
     try:
         value = float(xmlarray[1].text)
-        for actuator in BOOL_ACTS:
-            if actuator in xmlarray[0].text:
-                value = bool(value)
-    except:
+    except ValueError:
         value = xmlarray[1].text
+        return value
+    for actuator in BOOL_ACTS:
+        if actuator in xmlarray[0].text:
+            if value in [0, 1]:
+                value = bool(value)
+            else:
+                raise customerrs.NonBoolean
     return value
 
 
@@ -67,5 +72,3 @@ def convert_to_localvar(labelstr):
     labelstr = labelstr.split(',')[0]
     varstr = labelstr.replace(' ', '')
     return varstr
-
-

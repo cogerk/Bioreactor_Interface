@@ -1,7 +1,8 @@
+
 from flask import Flask, render_template
 import numpy as np
 from tornado.ioloop import IOLoop
-
+from tornado import gen
 from bokeh.application import Application
 from bokeh.application.handlers import FunctionHandler
 from bokeh.embed import autoload_server
@@ -40,9 +41,11 @@ def modify_doc(doc):
 bokeh_app = Application(FunctionHandler(modify_doc))
 
 # Here's the Input/Output loop we want to define
-io_loop = IOLoop.current()
+io_loop = IOLoop()
 
-server = Server({'/bkapp': bokeh_app}, io_loop=io_loop, allow_websocket_origin=["localhost:8080"])
+server = Server({'/bkapp': bokeh_app},
+                io_loop=io_loop,
+                allow_websocket_origin=["localhost:8080"])
 server.start()
 
 # Here's the flask page with the bokeh application

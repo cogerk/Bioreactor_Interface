@@ -1,14 +1,13 @@
+import sqlite3
 from flask_wtf import Form
 from wtforms import StringField, FloatField, BooleanField, \
-    SelectField, IntegerField
+    SelectField, IntegerField, SubmitField
 import utils
 import calconstanthandler as calconst
 import constanthandler as const
 import controlcmdhandler as cmd
-# TODO: Add email alarms
-# TODO: email address validation
-# TODO: Build validators
-# TODO: When you write something new show it hasn't been submitted yet somehow.
+from __init__ import models
+
 
 def create_reactor_form(rct_list):
     class SelectReactor(Form):
@@ -35,21 +34,21 @@ def build_constant_form(ip, port, reactorno):
 
 def build_calconstant_form(ip, port, reactorno):
     signal_list, slopes, ints = calconst.get_all_current(ip, port, reactorno)
-    signal_list = list(zip(signal_list, signal_list))
+    signal_zip = list(zip(signal_list, signal_list))
 
     class CalConstantForm(Form):
         # This generates the calibration constant form for a given reactor
 
         signal = SelectField('Signal',
-                             choices=signal_list,
-                             default=signal_list)
+                             choices=signal_zip,
+                             default=signal_zip[0])
     setattr(CalConstantForm,
             'slope',
-            FloatField('Slope', default=slopes[signal_list[0][0]]))
+            FloatField('Slope', default=slopes[signal_zip[0][0]]))
     setattr(CalConstantForm,
             'intercept',
-            FloatField('Intercept', default=ints[signal_list[0][0]]))
-    return CalConstantForm, slopes, ints
+            FloatField('Intercept', default=ints[signal_zip[0][0]]))
+    return CalConstantForm, slopes, ints, signal_list
 
 
 def build_control_forms(ip, port, reactorno):

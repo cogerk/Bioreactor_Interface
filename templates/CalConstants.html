@@ -1,10 +1,10 @@
-<!-- TODO: Calibration Graph & Signal Reader -->
-<!-- TODO: HTML COmments -->
 <!DOCTYPE html>
 {% from "_formhelpers.html" import render_field %}
 <html lang="en">
 <head>
+    <!-- Title webpage w/ reactor no -->
     <title>Calibrate Reactor {{reactor}} Signals</title>
+    <!-- Style Imports -->
     <link
       href="{{
         url_for('static', filename='css/bootstrap.min.css') }} "
@@ -13,6 +13,7 @@
       href="{{
         url_for('static', filename='css/custom.css') }} "
       rel="stylesheet">
+    <!-- jquery imports for live updating -->
     <script
       src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js">
     </script>
@@ -25,6 +26,7 @@
     <script
       src="{{url_for('static', filename='js/bootstrap.min.js')}}">
     </script>
+    <!-- bokeh imports for data visualization -->
     <link
       href="http://cdn.pydata.org/bokeh/release/bokeh-0.12.4.min.css"
       rel="stylesheet"
@@ -42,7 +44,8 @@
 </head>
 <body class="container">
      <div id="Title" class="row">
-        <h1>
+        <!-- Title webpage w/ reactor no -->
+         <h1>
             Reactor {{reactor}} Calibration
         </h1>
     </div>
@@ -62,7 +65,7 @@
       {% endif %}
     {% endwith %}
     <div id ="matter" class="row">
-      <!-- This block the form -->
+      <!-- This is the form where new slopes/ints are entered -->
       <form method=post class="col-6">
         <dl>
           {{ form.csrf_token }}
@@ -74,37 +77,28 @@
           <input type=submit value=Send class="btn btn-primary">
         </p>
       </form>
+      <!-- This is the signal graph + SS analytics -->
       <div id="graph" class="col-6">
-        {{ graphdiv|safe }}
+        {{ scripts[form.signal.default[0]]|safe }}
       </div>
     </div>
 </body>
 </html>
-{{ graphscript|safe }}
 <script>
 $(document).ready(function(){
     $("#signal").on('change', function() {
-    // This function gets current slopes/ints of a signal and returns it to form when a new signal is selected
+    // This function gets slopes/ints of a signal and returns it to form when a new signal is selected
+    // It also changes which plot we're looking at
         // Current values are sent from server on page load as {#slopes#} & {#ints#}
-        // This converts that dictionary of current values to js array
-        var js_slopes = [
-        {% for k in slopes %}
-            ["{{ k }}","{{ slopes[k] }}"] {% if not last %},{% endif %}
-         {% endfor %}
-        ];
-        var js_ints = [
-        {% for k in ints %}
-            ["{{ k }}","{{ ints[k] }}"] {% if not last %},{% endif %}
-         {% endfor %}
-        ];
-        var name = this.value  // This is the currently selected signal
-        // Loop through to find the slope and intercept of selected signal and fill slope and int into form
-        for ( idx in js_slopes ){
-            if (name == js_slopes[idx][0]){
-                $("#slope").val(js_slopes[idx][1]);
-                $("#intercept").val(js_ints[idx][1]);
-            };
-        };
+        // This converts that dictionary of current values to js dict
+        js_ints = {{ ints|tojson|safe }}
+        js_slopes = {{ slopes|tojson|safe }}
+        js_graphs = {{ scripts|tojson|safe }}
+
+        // Change values
+        $("#slope").val(js_slopes[this.value]);
+        $("#intercept").val(js_ints[this.value]);
+        $("#graph").html(js_graphs[this.value]);
     });
 });
 </script>

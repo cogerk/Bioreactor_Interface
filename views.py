@@ -24,7 +24,6 @@ admin.add_view(models.ControllerModelView(models.Controller, db.session))
 @app.route('/', methods=['GET', 'POST'], alias=False, strict_slashes=False)
 def select_reactor():
     # TODO: Admin authetification?
-    print('Here you are!')
     rct_list = []
     for rct in reactors:
         rct_list.append((str(rct.idx), str(rct.idx)+' - '+rct.descrip))
@@ -47,12 +46,20 @@ def send_current(reactorno):
 
 @app.route('/reactor/<int:reactorno>', methods=['GET', 'POST'], strict_slashes=False)
 def control_reactor(reactorno):
-    # TODO: Debug Submission
-    #  TODO: Add data visualization
-    # TODO: Add Probe and other data display
     ip, port = utils.get_controller_info(1, True)
     status = None
-    loop_form_dict, current, loop_list = build_control_forms(ip, port, reactorno)
+    loop_form_dict, current, loop_list = build_control_forms(ip,
+                                                             port,
+                                                             reactorno)
+    script_dict = {}
+    script_dict['Probes'] = autoload_server(model=None,
+                                            app_path='/R' +
+                                                     str(reactorno) +
+                                                     '_probes')
+    for loop in loop_list:
+        appname = '/R' + str(reactorno) + '_'+loop
+        #TODO: Control Loop Graphs
+        script_dict[loop] = None #autoload_server(model=None, app_path=appname)
     json_current = json.dumps(current)
     script = ''
     if request.method == 'POST':
@@ -69,7 +76,7 @@ def control_reactor(reactorno):
     return render_template('reactor.html',
                            loop_form_dict=loop_form_dict,
                            status=status,
-                           graphscript=script,
+                           graphs=script_dict,
                            current=json_current,
                            reactor=(reactorno, ip, port),
                            all_actions=utils.ACTIONS,

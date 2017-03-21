@@ -19,8 +19,6 @@ def get_submitted(form):
     :param form: form object, the submitted form via post request
     :return: dictionary of constant(s) and value(s)
     """
-    # TODO: Generalize?
-    # TODO: cRIO Side, add var name to status
     name = form.constant.data
     value = form.value.data
     return name, value
@@ -64,7 +62,6 @@ def submit_to_reactor(ip, port, reactorno, name, value):
                                    name,
                                    value)
     # Build the URL to send & send it
-    # TODO: WHy returning invalid constant name?
     get_url = utils.build_url(ip, port, reactorno, vi, cmdstr)
     print(get_url)
     result = urllib.request.urlopen(get_url).read()

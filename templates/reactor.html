@@ -2,7 +2,9 @@
 {% from "_formhelpers.html" import render_field %}
 {% from "_controlformhelpers.html" import render_control_fields %}
 <head>
+    <!-- Title webpage w/ reactor no -->
     <title>Reactor {{reactor[0]}} Control Panel</title>
+    <!-- Style Imports -->
     <link
         href="{{
             url_for('static', filename='css/bootstrap.min.css') }} "
@@ -11,6 +13,7 @@
         href="{{
             url_for('static', filename='css/custom.css') }} "
         rel="stylesheet">
+    <!-- jquery imports for live updating -->
     <script
         src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js">
     </script>
@@ -23,6 +26,7 @@
     <script
         src="{{url_for('static', filename='js/bootstrap.min.js')}}">
     </script>
+    <!-- bokeh imports for data visualization -->
     <link
             href="http://cdn.pydata.org/bokeh/release/bokeh-0.12.4.min.css"
             rel="stylesheet"
@@ -41,12 +45,13 @@
 <body class="container">
     <div id="Title">
         <h1>
+            <!-- Title webpage w/ reactor no -->
             Reactor {{reactor[0]}} Control Panel
         </h1>
     </div>
     <div class="row" id="status">
         <h2 class="col-2">Status:</h2>
-        <!-- This block displays status of last command sent -->
+        <!-- This block displays status of control panel -->
         <h2 id="load" class="col-2">Loading...</h2>
     </div>
     <div class="row" id="messages">
@@ -61,6 +66,7 @@
         {% endwith %}
     </div>
     <div id = "Constants" class="row bottom-buffer">
+        <!-- These are links for other functions you can perform on reactor -->
         <div class="col-6">
             <a href="{{reactor[0]}}/CalConstants">
                 Change Calibration Constants
@@ -72,12 +78,13 @@
             </a>
         </div>
     </div>
-        <!-- Every Control Loop (i.e. pH, DO, SBR) gets it's own section -->
     <div class="row justify-content-center" id="top_matter">
         <div class="col-12" id="Graph">
-        {{ graphdiv|safe }}
+            <!-- This is the signal graph + SS analytics -->
+            {{ graphs['Probes']|safe }}
         </div>
     </div>
+    <!-- Every Control Loop (i.e. pH, DO, SBR) gets it's own section -->
     {% for c_loop in all_loops  %}
         {{ loop.cycle('<div class="row">','')|safe }}
             <div id="{{c_loop}}" class="col control-loop highpadding">
@@ -178,6 +185,8 @@ $(document).ready(function(){
             });
         });
     };
+
+    // This removes the loading tag when the page is finished loading
     $.when(loadPage()).then($('#load').remove())
 
     // Update manual values that are auto controlled at the moment
@@ -216,7 +225,6 @@ $(document).ready(function(){
     {{ update }});
 
     // Let user know when value hasn't been submitted
-
     $("input[type=text]").change(function() {
         $(this).parent().prop('class', $(this).parent().prop('class') + ' has-warning')
         $(this).prop('class', $(this).prop('class')+ ' form-control-warning')
@@ -227,7 +235,7 @@ $(document).ready(function(){
     });
 
     });
-        // This function automatically send the control on/off function if any control loop switch is clicked.
+        // This function automatically sends the control on/off function if any control loop switch is clicked.
     $("*[id*=control_on]").closest('label').click(function(){ //
         console.log(this)
         var that = this

@@ -1,33 +1,45 @@
 ## Define Custom Errors
-class InvalidAction(Exception):
+
+class InvalidAction(BaseException):
     """
     Error if an action not in ACTIONS constant is passed.
     """
     pass
 
 
-class InvalidLoop(Exception):
+class InvalidLoop(BaseException):
     """
     Error if a control loop that the reactor does not have is passed.
     """
     pass
 
 
-class InvalidValue(Exception):
+class InvalidValue(BaseException):
     """
     Error if control parameters passed are not in the expected format/data type
     """
     pass
 
-class MissingKey(Exception):
+class MissingKey(BaseException):
     """
     No 'secretkey.txt' file in the directory
     """
     pass
 
 
-class CannotReachController(Exception):
+class CannotReachController(Warning):
     """
-    Was unable to reach constroller
+    Was unable to reach controller
     """
     pass
+
+class DataNotCollected(BaseException):
+    """
+    Was unable to reach controller
+    """
+    pass
+
+class NonBoolean(Warning):
+    """
+    A non boolean value was written to a boolean actuator
+    """
