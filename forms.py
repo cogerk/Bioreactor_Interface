@@ -6,6 +6,7 @@ import utils
 import calconstanthandler as calconst
 import constanthandler as const
 import controlcmdhandler as cmd
+import isehandler as isehnd
 from __init__ import models
 
 
@@ -59,6 +60,8 @@ def build_control_forms(ip, port, reactorno):
     """
     print('Building Form')
     current, loops = cmd.get_current(ip, port, reactorno)
+    if loops is None:
+        return None, None, None
     form_dict = {}
     # Loop through all given control loops and manual/setparams/switch actions
     for loop in loops:
@@ -80,7 +83,6 @@ def build_control_forms(ip, port, reactorno):
                 form_dict[loop][action] = F(prefix=prefix)
                 continue
             # Switching loop on/off happens onclick in the form so
-            # If not building switch form, add a submit button.
             for param in current[loop][loop+'_'+action]:
                 # Loop through 'commands' for given loop and action.
                 # i.e. ph_manual -> acid pump & base pump
@@ -103,3 +105,40 @@ def build_control_forms(ip, port, reactorno):
             form_dict[loop][action] = F(prefix=prefix)
     return form_dict, current, loops
 
+
+def build_ise_control_forms(ip, port, reactorno, ise):
+    """
+    Programatically build dict of dict of forms for the remote control panel
+    :param reactorno: int, given reactor number to build forms for
+    :return:
+    """
+    print('Building ISE Form')
+    param_dict = isehnd.get_ise_setparams(ip, port, reactorno, ise)
+    form_dict = {}
+    # Loop through all given control loops and manual/setparams/switch actions
+    for each in param_dict:
+        class F(Form):
+            pass
+        # Name the form prefix after the parameter set category
+        prefix = each
+        for param in param_dict[each]:
+            # Loop through 'commands' for given loop and action.
+            # i.e. ph_manual -> acid pump & base pump
+            # i.e. do_set params -> do set pt, n2 gain, etc. etc.
+            name = param[0].replace('?', '')
+            default = param[1]
+            field_type = type(default)
+            # Use data type of command to determine field
+            # i.e. boolean -> checkbox, float -> double
+            if field_type is bool or None: # Default value assigned w/ jquery
+                # It it's ternary controlled, also make it a boolean Field
+                setattr(F, name, BooleanField(name))
+            if field_type is float:
+                setattr(F, name, FloatField(name))
+            if field_type is str:
+                setattr(F, name, StringField(name))
+            if field_type is int:
+                setattr(F, name, IntegerField(name))
+        # Assign form to appropriate location in form dictionary
+        form_dict[each] = F(prefix=prefix)
+    return form_dict, param_dict

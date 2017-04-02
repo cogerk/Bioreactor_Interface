@@ -1,0 +1,138 @@
+<!doctype html>
+{% from "_iseformhelper.html" import render_ise_fields %}
+{% from "_backnav.html" import render_back_matter %}
+<head>
+    <!-- Title webpage w/ reactor no -->
+    <title>Reactor #{{reactor}} {{ise}} ISE Manager</title>
+    <!-- Style Imports -->
+    <link
+        href="{{
+            url_for('static', filename='css/bootstrap.min.css') }} "
+        rel="stylesheet">
+    <link
+        href="{{
+            url_for('static', filename='css/custom.css') }} "
+        rel="stylesheet">
+    <!-- jquery imports for live updating -->
+    <script
+        src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js">
+    </script>
+    <script
+        type=text/javascript
+        src="{{ url_for('static', filename='jquery.js') }}"></script>
+    <script
+        src="https://npmcdn.com/tether@1.2.4/dist/js/tether.min.js">
+    </script>
+    <script
+        src="{{url_for('static', filename='js/bootstrap.min.js')}}">
+    </script>
+    <!-- bokeh imports for data visualization -->
+    <link
+            href="http://cdn.pydata.org/bokeh/release/bokeh-0.12.4.min.css"
+            rel="stylesheet"
+            type="text/css">
+    <link
+        href="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.4.min.css"
+        rel="stylesheet"
+        type="text/css">
+    <script
+        src="http://cdn.pydata.org/bokeh/release/bokeh-0.12.4.min.js">
+    </script>
+    <script
+        src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.4.min.js">
+    </script>
+</head>
+<body class="container">
+    <div id="Title">
+        <h1>
+            <!-- Title webpage w/ reactor no -->
+            Reactor #{{reactor}} {{ise}} ISE Manager
+        </h1>
+    </div>
+    <div class="row" id="messages">
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <ul class=flashes>
+            {% for message in messages %}
+              <li>{{ message }}</li>
+            {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
+    </div>
+    <div class="row justify-content-md-center" id="Graph">
+        <!-- This is the graph  -->
+        {{ graphscript|safe }}
+    </div>
+    <!-- Generate parameter setting form for each dependent signal -->
+    {% for form in ise_setparam_forms  %}
+        {{ loop.cycle('<div class="row justify-content-md-center">','')|safe }}
+        {{ render_ise_fields(form, form_dict[form]) }}
+        {{ loop.cycle('','</div>')|safe }}
+        {% if loop.last and loop.index % 2 != 0 %}
+            </div>
+        {% endif %}
+    {% endfor %}
+{{render_back_matter(reactor, True)}}
+</body>
+<!-- This contains the script to build the embedded graph -->
+<script>
+$(document).ready(function(){
+    // This function enables/disables manual controls if control switch is off/on
+
+    // On page load, populate form values with current values
+    var current = {{ current|tojson|safe }}
+    var idstr
+    $.each(current, function(key, arr){
+        $.each(arr, function(idx, val){
+            idstr = key+'-'+val[0]
+            if (typeof(val[1]) == "boolean") {
+                idstr = idstr.slice(0,-1)
+                $("input[id*=' On']").each(function(){
+                    if(this.id==idstr) {
+                        if (val[1]) {
+                            $(this.closest("label")).prop("class", "btn btn-block btn-success active")
+                        }
+                        else {
+                            $(this.closest("label")).prop("class", "btn btn-block btn-danger")
+                        };
+                    }
+                });
+            }
+            else {
+                $("input[id*='"+idstr+"']").prop("value", val[1])
+            };
+        });
+    });
+
+    // Specific script if a form contains actuator labeled:
+    // Online XXX Correction On?
+    // Look inside the form for another field called:
+    // Assumed XXX ...
+    // Then enable or disable that field depending on if online control is on or not
+    $("input[id*='Online']").each(function(){
+        $("input[id*='Correction On']").each(function(){
+            var corrector = (this.id).substring((this.id).indexOf('Online')+7, (this.id).indexOf('Correction On')-1)
+            var assum = $($(this).parents()[4]).find("input[id*='Assumed "+corrector+"']")
+            boolswitch = $(this).prop('checked')
+            $(assum).prop('disabled', boolswitch)
+        });
+    });
+
+    // Let user know when value hasn't been submitted
+    $("input[type=text]").change(function() {
+        $(this).parent().prop('class', $(this).parent().prop('class') + ' has-warning')
+        $(this).prop('class', $(this).prop('class')+ ' form-control-warning')
+    });
+
+    // This function automatically sends the control on/off function if any control loop switch is clicked.
+    $("*[id*= On]").closest('label').click(function(){ //
+        var that = this
+        $('#ParameterForms').find(':input').prop('disabled', false)
+        setTimeout(function() {
+            $(that.form).submit()
+        }, 1)
+    });
+});
+
+</script>

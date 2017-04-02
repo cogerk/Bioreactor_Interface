@@ -1,5 +1,4 @@
 <!doctype html>
-{% from "_formhelpers.html" import render_field %}
 {% from "_controlformhelpers.html" import render_control_fields %}
 <head>
     <!-- Title webpage w/ reactor no -->
@@ -26,21 +25,6 @@
     <script
         src="{{url_for('static', filename='js/bootstrap.min.js')}}">
     </script>
-    <!-- bokeh imports for data visualization -->
-    <link
-            href="http://cdn.pydata.org/bokeh/release/bokeh-0.12.4.min.css"
-            rel="stylesheet"
-            type="text/css">
-    <link
-        href="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.4.min.css"
-        rel="stylesheet"
-        type="text/css">
-    <script
-        src="http://cdn.pydata.org/bokeh/release/bokeh-0.12.4.min.js">
-    </script>
-    <script
-        src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.4.min.js">
-    </script>
 </head>
 <body class="container">
     <div id="Title">
@@ -65,16 +49,21 @@
           {% endif %}
         {% endwith %}
     </div>
-    <div id = "Constants" class="row bottom-buffer">
+    <div id = "Constants" class="row bottom-buffer justify-content-md-center">
         <!-- These are links for other functions you can perform on reactor -->
-        <div class="col-6">
-            <a href="{{reactor[0]}}/CalConstants">
+        <div class="btn-group">
+            <a href="/" class="btn btn-secondary">
+                Home
+            </a>
+
+            <a href="{{reactor[0]}}/CalConstants" class="btn btn-secondary">
                 Change Calibration Constants
             </a>
-        </div>
-        <div class="col-6">
-            <a href="{{reactor[0]}}/Constants">
+            <a href="{{reactor[0]}}/Constants" class="btn btn-secondary">
                 Change Other Constants
+            </a>
+            <a href="{{reactor[0]}}/ise" class="btn btn-secondary">
+                ISE Manager
             </a>
         </div>
     </div>
@@ -228,16 +217,11 @@ $(document).ready(function(){
     $("input[type=text]").change(function() {
         $(this).parent().prop('class', $(this).parent().prop('class') + ' has-warning')
         $(this).prop('class', $(this).prop('class')+ ' form-control-warning')
-        console.log($(this).parent().prop('class'))//, 'form-group has-success')
-        console.log($(this).prop('class'))//,'form-group form-group-success')
-        //$($($(this).parents()).filter('form')[0]).prop('class', 'form-group has-success')
-        //$(this).prop('class','form-group form-group-success')
     });
 
     });
         // This function automatically sends the control on/off function if any control loop switch is clicked.
     $("*[id*=control_on]").closest('label').click(function(){ //
-        console.log(this)
         var that = this
         setTimeout(function() {
         $(that.form).submit()

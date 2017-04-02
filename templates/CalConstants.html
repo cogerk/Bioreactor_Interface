@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 {% from "_formhelpers.html" import render_field %}
+{% from "_backnav.html" import render_back_matter %}
 <html lang="en">
 <head>
     <!-- Title webpage w/ reactor no -->
@@ -66,14 +67,12 @@
     {% endwith %}
     <div id ="matter" class="row">
       <!-- This is the form where new slopes/ints are entered -->
-      <form method=post class="col-6">
-        <dl>
+      <form method=post class="form-group col-6">
           {{ form.csrf_token }}
           {{ render_field(form.signal) }}
           {{ render_field(form.slope) }}
           {{ render_field(form.intercept) }}
-        </dl>
-        <p class="form-group row justify-content-center">
+        <p class="form-group row">
           <input type=submit value=Send class="btn btn-primary">
         </p>
       </form>
@@ -82,6 +81,7 @@
         {{ scripts[form.signal.default[0]]|safe }}
       </div>
     </div>
+    {{ render_back_matter(reactor) }}
 </body>
 </html>
 <script>

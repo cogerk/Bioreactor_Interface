@@ -1,0 +1,18 @@
+
+{% macro render_back_matter(reactor,ise=False) %}
+    <div id="back" class="row top-buffer justify-content-md-center">
+        <div class="btn-group">
+            <a href="/" class="btn btn-secondary">
+                Return to Reactor Selection
+            </a>
+            <a href="/reactor/{{reactor}}" class="btn btn-secondary">
+                Return to Reactor #{{reactor}} Control Panel
+            </a>
+            {% if ise %}
+                <a href="/reactor/{{reactor}}/ise" class="btn btn-secondary">
+                    Return to Reactor #{{reactor}} ISE Manager
+                </a>
+            {% endif %}
+        </div>
+    </div>
+{% endmacro %}

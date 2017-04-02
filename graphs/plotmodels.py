@@ -4,9 +4,9 @@ Written By: Kathryn Cogert
 Mar 20 2017
 """
 from bokeh.models.formatters import DatetimeTickFormatter
-from bokeh.models import Paragraph
-from bokeh.palettes import Set1_9 as Palette
-
+from bokeh.models import Paragraph, Range1d, LinearAxis
+from bokeh.palettes import Dark2_6 as Palette
+# TODO: What is range for ORP Probe?
 
 # Assign plot colors to common things
 default_form_dict = {}
@@ -25,7 +25,7 @@ def assign_line_format(sigs):
         if sig in list(default_form_dict.keys()):
             form_dict[sig] = default_form_dict[sig]
         else:
-            if count == 8:
+            if count == 5:
                 count = 0
                 linewidth += 0.5
             else:
@@ -46,7 +46,7 @@ def steady_state_calcs(width):
     return calc_title, avg_label, stdev_label, diff_label
 
 
-def format_plot(p):
+def format_plot(p, multi=False):
     p.toolbar_sticky = False
     p.xaxis.formatter = DatetimeTickFormatter(minsec=['%Mm %Ss'],
                                               minutes=['%Mm %Ss'],
@@ -63,4 +63,10 @@ def format_plot(p):
     p.xaxis.major_label_text_font_size = '12pt'
     p.yaxis.axis_label_text_font_size = '14pt'
     p.yaxis.major_label_text_font_size = '12pt'
+    if multi:
+        p.extra_y_ranges = {'2nd': Range1d(start=0, end=1000)}
+        p.add_layout(LinearAxis(y_range_name='2nd',
+                                axis_label_text_font_size = '14pt',
+                                major_label_text_font_size = '12pt'),
+                     'right')
     return p

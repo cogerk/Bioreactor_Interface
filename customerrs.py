@@ -43,3 +43,8 @@ class NonBoolean(Warning):
     """
     A non boolean value was written to a boolean actuator
     """
+
+class NotProperlyFormatted(Warning):
+    """
+    This is not properly formatted on cRIO Side
+    """

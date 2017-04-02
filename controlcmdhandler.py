@@ -33,7 +33,6 @@ def get_submitted(form, current):
             # Store each command in a seperate command dictionary
             command = entry[entry.index('-')+1:]
             commands_dict[command] = form[entry]
-            print(commands_dict)
     # Special rules for SBR set params
 
     if action == 'Switch':  # If switch, only expecting one parameter, no dict
@@ -80,7 +79,6 @@ def translate_to_ws(reactorno, loop, action, params=None, current=None):
     if action != 'Status':
         # SBR loop has special rules for cmd str b/c so many inputs
         params = [x for x in params if x not in current[loop][loop+'_'+action]]
-        print(params)
         if loop == 'SBR':
             command = [command+'Label='] * len(params)
             for idx, each in enumerate(params):
@@ -149,7 +147,7 @@ def submit_to_reactor(ip, port, reactorno, loop, action, params=None, current=No
                         status = terminal.find('Value').text
                 if idx is 0:
                     statuslast = status
-                else: # If the status differs from the last stop writing
+                else:  # If the status differs from the last stop writing
                     if statuslast != status:
                         status = 'Not all Commands Written: ' + status
                         break
@@ -212,6 +210,8 @@ def get_current(ip, port, reactorno):
     current = {}
     print('Getting Current Vals...')
     loop_list = rctr.get_loops(ip, port, reactorno)
+    if loop_list is None:
+        return None, None
     for loop in loop_list:
         current[loop] = submit_to_reactor(ip, port, reactorno, loop, 'Status')
     return current, loop_list

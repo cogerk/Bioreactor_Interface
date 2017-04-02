@@ -18,6 +18,8 @@ from utils import build_url
 
 def get_probe_snap(ip, port, reactorno):
     signals = get_signals(ip, port, reactorno)
+    if signals is None:
+        return None
     signal_ele_tree = list(zip(signals.findall('Name'),
                                signals.findall('Value')))
     data = {}
@@ -113,6 +115,9 @@ def get_signals(ip, port, reactorno):
             str(reactorno),
             customerrs.CannotReachController)
         signals = None
+    except urllib.error.URLError:
+        warnings.warn('Cannot find the cRIO.')
+        signals = None
     return signals
 
 
@@ -162,6 +167,9 @@ def get_loops(ip, port, reactorno):
             'While searching for loops, could not find Reactor #' +
             str(reactorno),
             customerrs.CannotReachController)
+        loops = None
+    except urllib.error.URLError:
+        warnings.warn('Cannot find the cRIO.')
         loops = None
     return loops
 

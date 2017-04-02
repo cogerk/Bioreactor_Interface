@@ -21,6 +21,7 @@ First Modified On: Feb 28 2017
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 import customerrs as cust
+from enum import Enum
 
 if 'app' not in globals(): #For launching Bokeh: If app is already running
     app = Flask(__name__)

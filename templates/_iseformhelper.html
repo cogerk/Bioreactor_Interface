@@ -1,0 +1,35 @@
+{% macro render_ise_fields(form_name, form) %}
+    <form class="col-5 form-group control-loop" id="{{form_name}}_bools" method="post">
+        <h3 class="top-buffer">{{form_name}}</h3>
+        {{form.csrf_token}}
+        {% for field in form if 'CSRFTokenField' not in field.type  %}
+            {% if field.type == 'BooleanField' %}
+            <div class="form-group row justify-content-md-center">
+                <div class="col-12 col-md-auto btn-group top-buffer" data-toggle="buttons">
+                    <label class="btn btn-secondary" for="{{ field.id }}">
+                        {{ field(class="btn btn-primary",autocomplete="off", **kwargs)|safe }}
+                        {{ field.label.text+'?' }}
+                    </label>
+                </div>
+            </div>
+            {% endif %}
+        {% endfor %}
+        {% for field in form if 'CSRFTokenField' not in field.type %}
+            {% if field.type != 'BooleanField' %}
+            <div class="form-group row justify-content-md-center">
+                {{ field.label(class="col-sm-8 col-form-label") }}
+                <div class = "col-sm-4">
+                    {{ field(class="form-control",**kwargs)|safe }}
+                </div>
+            </div>
+            {% endif %}
+        {% endfor %}
+        <div class="row justify-content-md-center">
+            <div class="col-12 col-md-auto">
+                <div class="btn-group">
+                    <input type=submit value=Send class="btn btn-primary">
+                </div>
+             </div>
+        </div>
+    </form>
+{% endmacro %}

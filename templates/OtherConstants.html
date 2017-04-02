@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 {% from "_formhelpers.html" import render_field %}
+{% from "_backnav.html" import render_back_matter %}
 <html lang="en">
 <head>
     <title>Edit {{reactor}} Misc. Constants</title>
@@ -62,19 +63,16 @@
         </div>
       {% endif %}
     {% endwith %}
-
-    <div class="form">
-        <!-- This block contains for the form -->
-        <form method=post>
-          <dl>
-          {{ form.csrf_token }}
-            {{ render_field(form.constant) }}
-            {{ render_field(form.value) }}
-          </dl>
-          <p class="row justify-content-center">
-              <input class="btn btn-primary" type=submit value=Send></p>
-        </form>
-    </div>
+    <!-- This block contains for the form -->
+    <form method=post>
+        {{ form.csrf_token }}
+        {{ render_field(form.constant) }}
+        {{ render_field(form.value) }}
+      <p class="row justify-content-center">
+          <input class="btn btn-primary" type=submit value=Send>
+      </p>
+    </form>
+    {{ render_back_matter(reactor) }}
 </body>
 </html>
 <script type=text/javascript src="{{

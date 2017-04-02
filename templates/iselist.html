@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+{% from "_backnav.html" import render_back_matter %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Reactor {{reactorno}} ISEs</title>
+    <!-- Style Imports -->
+    <link
+      href="{{
+        url_for('static', filename='css/bootstrap.min.css') }} "
+      rel="stylesheet">
+    <link
+      href="{{
+        url_for('static', filename='css/custom.css') }} "
+      rel="stylesheet">
+    <!-- jquery imports for live updating -->
+    <script
+      src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js">
+    </script>
+    <script
+      type=text/javascript
+      src="{{ url_for('static', filename='jquery.js') }}"></script>
+    <script
+      src="https://npmcdn.com/tether@1.2.4/dist/js/tether.min.js">
+    </script>
+    <script
+      src="{{url_for('static', filename='js/bootstrap.min.js')}}">
+    </script>
+</head>
+<body class="container">
+    <div id="Title" class="row">
+        <!-- Title webpage w/ reactor no -->
+         <h1>
+            Reactor {{reactor}} ISE Manager
+        </h1>
+    </div>
+    <div id ="iselist" class="row">
+        <ul class="ise_list">
+        {% for ise in ise_list %}
+        <li>
+            <a href="ise/{{ ise[1] }}">
+                {{ ise[0] }}
+            </a>
+        </li>
+        {% endfor %}
+        </ul>
+    </div>
+    {{ render_back_matter(reactor) }}
+</body>
+</html>

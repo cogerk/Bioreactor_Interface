@@ -3,140 +3,156 @@ Create a graph of all probes for a given reactor
 Written 3/20/17
 By: Kathryn Cogert
 """
+# TODO: fix buttons
 import warnings
 from bokeh.plotting import figure
-from bokeh.models.widgets import DataTable, TableColumn
-from bokeh.models.widgets import Slider, CheckboxButtonGroup, RadioGroup
-from bokeh.models import Legend, ColumnDataSource
+from bokeh.models.widgets import Slider, CheckboxButtonGroup
+from bokeh.models import Legend, Range1d, LinearAxis
 from bokeh.layouts import widgetbox, layout
 from bokeh.util.warnings import BokehUserWarning
 import numpy as np
-from reactorhandler import get_probe_snap
+from isehandler import get_ise_snap
 import graphs.plotmodels as mods
 
 
-def probe_graph_builder(ip, port, reactor, signals):
+def ise_graph_builder(ip, port, reactor, ise_sigs):
     """
     Builds a function of all reactor signals to serve in the bokeh server
     :param ip: str, the cRIO IP address
     :param port: int, the port of the webservice
     :param reactor: Reactor class, # of the reactor & description
-    :param signals: list str, list of signals available from the reactor
+    :param ise_sigs: list str, list of signals associated with the ISE
     :return: function(doc)
     """
-    def probe_graph(doc):
+    def ise_graph(doc):
         """
         Function to generate document for server
         :param doc: bokeh document
         :return:
         """
-        # Define and format the figure
-        ptitle = 'Reactor #' + str(reactor.idx) + ' Probes: ' + reactor.descrip
+        # Define and format the figuree
+        ise = ise_sigs[0]
+        ptitle = 'Reactor #' + str(reactor) + ' ' + ise + ' Graph'
         p = figure(plot_width=800,
                    x_axis_type='datetime',
                    plot_height=500,
                    title=ptitle)
-        p = mods.format_plot(p, True)
-        ax_dict = {0: 'default',
-                   1: '2nd'}
-        rctprobes = signals
-
-        # Remove non-linear actuator signals, they aren't probes
-        rctprobes = [r for r in rctprobes if 'Flowrate' not in r]
-        rctprobes = [r for r in rctprobes if 'VFD' not in r]
+        p = mods.format_plot(p)
+        p.extra_y_ranges = {'Raw': Range1d(start=0, end=.01),
+                            'Eq': Range1d(start=0, end=1)}
+        p.add_layout(LinearAxis(y_range_name='Raw',
+                                axis_label='Raw Value, mol/L',
+                                axis_label_text_font_size='14pt',
+                                axis_line_dash='dotted',
+                                major_label_text_font_size='12pt'), 'right')
+        p.add_layout(LinearAxis(y_range_name='Eq',
+                                axis_label='Equilibrium Approach, mV/s',
+                                axis_label_text_font_size='14pt',
+                                axis_line_dash='dashdot',
+                                major_label_text_font_size='12pt'), 'right')
 
         # Generate a unique line format for each probe
-        line_form_dict = mods.assign_line_format(rctprobes)
+        line_form_dict = mods.assign_line_format(ise_sigs)
 
-        # Initiate data dictionaries, legend label list, and line dictionary
-        ss_calcs = {'Analytic': ['Average',
-                                 'Standard Deviation',
-                                 'Differential']}
-        ss_cols = [TableColumn(field='Analytic', title='Analytic', width=450)]
+        # Initiate data dictionaries and line dictionary
         trace = {}
         ds = {}
-        lgls = []
-        axis_pickers = []
-        # Build the legend, data table columns, and lines
-        dat, units = get_probe_snap(ip, port, reactor.idx)  # Get units for leg
-        for probe in rctprobes:
+        all_plots = []
+
+        # Define Lines and list all plots
+        for sig in ise_sigs:
             # make the line
-            trace[probe] = p.line([], [],
-                                  color=line_form_dict[probe][0],
-                                  line_width=line_form_dict[probe][1])
-            # Define lines's data source
-            ds[probe] = trace[probe].data_source
-            ds[probe].data['x'] = []
-            ds[probe].data['y'] = []
-
-            # Add probe to legend
-            if units[probe] is not '':
-                probe_label = probe + ', ' + units[probe]
-            else:
-                probe_label = probe
-            lgls.append((probe_label, [trace[probe]]))
-
             # Make axis picker
-            if probe == 'ORP':
-                trace[probe].y_range_name = '2nd'
-                act = 1
+            if 'ISE' in sig:
+                # If it's an ISE signal, make corrected raw and signal graphs
+                ise_correct = sig + ' Corrected Value, mg/L'
+                ise_raw = sig + ' Raw Value, mol/L'
+                ise_eq = sig + ' Equilibrium Approach, mV/s'
+
+                # Corrected Graphs
+                # Build Graph
+                trace[ise_correct] = p.line([],
+                                            [],
+                                            color=line_form_dict[sig][0],
+                                            line_width=line_form_dict[sig][1])
+                # Assign data dict
+                ds[ise_correct] = trace[ise_correct].data_source
+                ds[ise_correct].data['x'] = []
+                ds[ise_correct].data['y'] = []
+
+                # Raw Graph
+                trace[ise_raw] = p.line([],
+                                        [],
+                                        color=line_form_dict[sig][0],
+                                        line_width=line_form_dict[sig][1],
+                                        line_dash='dotted',
+                                        y_range_name='Raw')
+                ds[ise_raw] = trace[ise_raw].data_source
+                ds[ise_raw].data['x'] = []
+                ds[ise_raw].data['y'] = []
+
+                # Equilibrium Graph
+                trace[ise_eq] = p.line([],
+                                       [],
+                                       color=line_form_dict[sig][0],
+                                       line_width=line_form_dict[sig][1],
+                                       line_dash='dashdot',
+                                       y_range_name='Eq')
+                ds[ise_eq] = trace[ise_eq].data_source
+                ds[ise_eq].data['x'] = []
+                ds[ise_eq].data['y'] = []
+
+                # Add graphs to legend
+                all_plots.append(ise_correct)
+                all_plots.append(ise_raw)
+                all_plots.append(ise_eq)
+
             else:
-                act = 0
-            axis_pickers.append(RadioGroup(
-                labels=[probe + ' on Left Axis',
-                        probe + ' on Right Axis'],
-                active=act,
-                css_classes=['bokeh-radio']))
+                # Build Graph
+                trace[sig] = p.line([],
+                                    [],
+                                    color=line_form_dict[sig][0],
+                                    line_width=line_form_dict[sig][1])
+                # Assign data dict
+                ds[sig] = trace[sig].data_source
+                ds[sig].data['x'] = []
+                ds[sig].data['y'] = []
 
-            # Intialize the table data source
-            ss_calcs[probe] = [None]*len(ss_calcs['Analytic'])
-            # Define columns in datatable
-            ss_cols.append(TableColumn(field=probe,
-                                       title=probe))
+                # Add graphs to legend
 
-        # Define a data table for steady state analytics
-        ss_data = ColumnDataSource(ss_calcs)
-        data_table = DataTable(source=ss_data,
-                               columns=ss_cols,
-                               width=p.plot_width+100,
-                               height=200,
-                               row_headers=False)
+                all_plots.append(sig)
+        # Build Legend
+        dat, units = get_ise_snap(ip, port, reactor, ise)
+        lgls = []
+        for each in all_plots:
+            lgls.append((each, [trace[each]]))
+        # TODO: Show if steady state, data is valid, etc.
+
+
         # Create widgets
         window_size = Slider(title="Time Frame, secs",
                              value=600,
                              start=5,
                              end=3600,
                              step=1)
-        plots_on = CheckboxButtonGroup(labels=rctprobes,
-                                       active=list(range(len(rctprobes))))
-        diff_size = Slider(title="Differential Time Frame, secs",
-                           value=30,
-                           start=5,
-                           end=300,
-                           step=1)
-
+        plots_on = CheckboxButtonGroup(labels=all_plots,
+                                       active=list(range(len(all_plots))))
         window_size.css_classes = ['bokeh-labels']
+
         # Create Legend
         customlegend = Legend(items=lgls,
                               location=(0, -47),
                               label_text_font_size='12pt')
         p.add_layout(customlegend, 'left')
+
         # Initialize periodic callback vars
-        stream_speed = 1000
+        stream_speed = 500
         df = {}
         length_dt = 30
+        length_diff_dt = 30
 
         # Periodic Callback Function
         def stream():
-            # Initialize diff time slider vals
-            global last_diff_dt
-            global length_diff_dt
-            try:
-                length_diff_dt
-            except NameError:
-                length_diff_dt = diff_size.value
-            last_diff_dt = length_diff_dt
-            length_diff_dt = window_size.value
 
             # Initialize time slider vals
             global last_dt
@@ -158,21 +174,12 @@ def probe_graph_builder(ip, port, reactor, signals):
             last_plts = current_plts
             current_plts = plots_on.active
 
-            # Initialize Axis Picker Vals
-            global last_ax
-            global current_ax
-            try:
-                current_ax
-            except NameError:
-                current_ax = [x.active for x in axis_pickers]
-            last_ax = current_ax
-            current_ax = [x.active for x in axis_pickers]
 
             # Get latest snapshot of data
-            new_data, u = get_probe_snap(ip, port, reactor.idx)
+            new_data, u = get_ise_snap(ip, port, reactor, ise)
 
             # *Manipulate timestamp and dt data*
-            # if first time through, assign first data point
+            # If first time through, assign first data point
             delon = False
             if df == {}:
                 df['Timestamp'] = [new_data['Timestamp']]
@@ -186,7 +193,6 @@ def probe_graph_builder(ip, port, reactor, signals):
                     # remove last point, recalculate dt values
                     if (df['Timestamp'][-1] -
                             df['Timestamp'][0]).total_seconds() > length_dt:
-
                         del df['Timestamp'][0]
                         df['dt'] = [ts-df['Timestamp'][0]
                                     for ts in df['Timestamp']]
@@ -199,7 +205,8 @@ def probe_graph_builder(ip, port, reactor, signals):
                     # Find the part of the data frame described by the new len
                     try:
                         idx = [x[0] for x in enumerate(df['dt']) if
-                               (last_dt - x[1].total_seconds()) <= length_dt][0]
+                               (last_dt - x[1].total_seconds()) <=
+                               length_dt][0]
                     except IndexError:
                         idx = 0
                     df['Timestamp'] = df['Timestamp'][idx:-1]
@@ -209,7 +216,7 @@ def probe_graph_builder(ip, port, reactor, signals):
             idx = 0
             if current_plts != last_plts:
                 new_lgls = []
-            for no, sig in enumerate(rctprobes):
+            for no, sig in enumerate(all_plots):
                 # Update which plots are visible and build legend list
                 if current_plts != last_plts:
                     if no in current_plts:
@@ -221,9 +228,6 @@ def probe_graph_builder(ip, port, reactor, signals):
                         new_lgls.append((sig_label, [trace[sig]]))
                     else:
                         trace[sig].visible = False
-                # Update axis ownership of plots
-                if current_ax[no] != last_ax[no]:
-                    trace[sig].y_range_name = ax_dict[current_ax[no]]
                 # if first time through, assign first data point
                 try:
                     df[sig]
@@ -246,40 +250,23 @@ def probe_graph_builder(ip, port, reactor, signals):
                     warnings.simplefilter("ignore", category=BokehUserWarning)
                     ds[sig].data['x'], ds[sig].data['y'] = df['dt'], df[sig]
                 ds[sig].trigger('data', ds[sig].data, ds[sig].data)
-                # Perform calcuations
-                if len(ds[sig].data['x']) > 1:
-                    avg = round(np.mean(ds[sig].data['y']), 4)
-                    stdev = round(np.std(ds[sig].data['y']), 4)
-                    x1 = ds[sig].data['x'][-1].total_seconds()
-                    x2 = x1 - length_diff_dt
-                    diff_arr = [np.abs(x.total_seconds() - x2)
-                                for x in ds[sig].data['x']]
-                    idx = np.argmin(diff_arr)
-                    dy = ds[sig].data['y'][-1] - ds[sig].data['y'][idx]
-                    diff = round(dy/length_diff_dt, 4)
-                else:
-                    diff = None
-                    avg = None
-                    stdev = None
-                ss_data.data[sig] = [avg, stdev, diff]
+
+
+
             # Update legend
             if current_plts != last_plts:
                 customlegend.items = new_lgls
-            # Trigger table data source
-            ss_data.trigger('data', ss_data.data, ss_data.data)
 
         # Build the document to serve
-        inputs = widgetbox(window_size, diff_size, width=p.plot_width)
+        inputs = widgetbox(window_size, width=p.plot_width)
+
         plot_btns = widgetbox(plots_on)
-        table = widgetbox(data_table)
-        axis_opts = [widgetbox(x) for x in axis_pickers]
         doc.add_root(layout([[p],
                              [plot_btns],
-                             axis_opts,
-                             [inputs],
-                             [table]],
+                             [inputs]],
                             sizing_mode='scale_width'))
         # Add a periodic callback to be run as defined by stream speed
         doc.add_periodic_callback(stream, stream_speed)
 
-    return probe_graph
+    return ise_graph
+
