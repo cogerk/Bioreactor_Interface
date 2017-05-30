@@ -16,9 +16,10 @@ def stream_ex(doc):
     r={}
     ds={}
     for no, each in enumerate(plot_list):
+        #r[each+' Error'] = p.multi_line([], [], color=plot_cols[no], line_width=1)
         r[each] = p.line([], [], color=plot_cols[no], line_width=2)
         ds[each] = r[each].data_source
-
+        #ds[each+' Error'] = r[each].data_source
     plots_on = CheckboxButtonGroup(labels=plot_list, active=list(range(len(plot_list))))
 
 
@@ -37,6 +38,8 @@ def stream_ex(doc):
         for no, each in enumerate(plot_list):
             ds[each].data['x'].append(step)
             ds[each].data['y'].append(random.randint(0, 100))
+            #ds[each+' Error'].data['xs'].append(list(zip(ds[each].data['x'],ds[each].data['x'])))
+            #ds[each+' Error'].data['ys'].append((ds[each+' Error'].data['ys']+1,ds[each+' Error'].data['ys']-1))
             ds[each].trigger('data', ds[each].data, ds[each].data)
             # update plot visiblity
             if current_plts != last_plts:

@@ -68,10 +68,8 @@ def signal_graph_builder(ip, port, reactorno, signal):
                 length = window_size.value
             last = length
             length = window_size.value
-
             # Get latest snapshot of data
             new_data, units = get_signal_snap(ip, port, reactorno)
-
             # Append to end of existing data
             if df == {}:  # if first time through
                 # Assign label to y axis
@@ -101,11 +99,10 @@ def signal_graph_builder(ip, port, reactorno, signal):
                                (last-x[1].total_seconds()) <= length][0]
                     except IndexError:
                         idx = 0
-                    df['Timestamp'] = df['Timestamp'][idx:-1]
-                    df[signal] = df[signal][idx:-1]
+                    df['Timestamp'] = df['Timestamp'][idx:len(df['Timestamp'])]
+                    df[signal] = df[signal][idx:len(df[signal])]
                     df['dt'] = [ts-df['Timestamp'][0]
                                 for ts in df['Timestamp']]
-
             # Assign data to graph
             with warnings.catch_warnings():
                 # first couple itrs, avoid weird warning

@@ -1,14 +1,13 @@
-import sqlite3
 from flask_wtf import Form
 from wtforms import StringField, FloatField, BooleanField, \
-    SelectField, IntegerField, SubmitField
+    SelectField, IntegerField
 import utils
-import calconstanthandler as calconst
-import constanthandler as const
+import customerrs as cust
 import controlcmdhandler as cmd
 import isehandler as isehnd
-from __init__ import models
-
+# TODO: Unit Tests Labview
+# TODO: Unit Tests Python
+# TODO: Fake Reactor
 
 def create_reactor_form(rct_list):
     class SelectReactor(Form):
@@ -19,9 +18,9 @@ def create_reactor_form(rct_list):
     return SelectReactor
 
 
-def build_constant_form(ip, port, reactorno):
-    constants, constant_list = const.get_all_current(ip, port, reactorno)
-    constant_list = list(zip(constant_list,constant_list))
+def build_constant_form(constants):
+    constant_list = list(zip(constants.keys(), constants.keys()))
+
     class ConstantForm(Form):
         # This generates the constants form for a given reactor
         constant = SelectField('Constant',
@@ -29,14 +28,12 @@ def build_constant_form(ip, port, reactorno):
                              default=constant_list)
     setattr(ConstantForm,
             'value',
-            FloatField('Value', default=constants[constant_list[0][0]]))
-    return ConstantForm, constants
+            FloatField('Value', default=constants[constant_list[0][0]][1]))
+    return ConstantForm
 
 
-def build_calconstant_form(ip, port, reactorno):
-    signal_list, slopes, ints = calconst.get_all_current(ip, port, reactorno)
+def build_calconstant_form(signal_list, slopes, ints):
     signal_zip = list(zip(signal_list, signal_list))
-
     class CalConstantForm(Form):
         # This generates the calibration constant form for a given reactor
 
@@ -49,7 +46,7 @@ def build_calconstant_form(ip, port, reactorno):
     setattr(CalConstantForm,
             'intercept',
             FloatField('Intercept', default=ints[signal_zip[0][0]]))
-    return CalConstantForm, slopes, ints, signal_list
+    return CalConstantForm
 
 
 def build_control_forms(ip, port, reactorno):
@@ -61,10 +58,18 @@ def build_control_forms(ip, port, reactorno):
     print('Building Form')
     current, loops = cmd.get_current(ip, port, reactorno)
     if loops is None:
+        # TODO: Replace this with error handling
         return None, None, None
     form_dict = {}
     # Loop through all given control loops and manual/setparams/switch actions
     for loop in loops:
+        if 'Unable to access' in current[loop]:
+            continue
+        elif not current[loop]:
+            print(current[loop])
+            current[loop] = loop + ' Status was blank, is R' + str(reactorno) \
+                            + loop + 'Control_status.vi wired properly?'
+            continue
         form_dict[loop] = {}
         for action in utils.ACTIONS:
             if action is 'Status':
@@ -83,6 +88,13 @@ def build_control_forms(ip, port, reactorno):
                 form_dict[loop][action] = F(prefix=prefix)
                 continue
             # Switching loop on/off happens onclick in the form so
+            try:
+                current[loop][loop+'_'+action]
+            except KeyError:
+                current[loop][loop+'_'+action] = 'Could not find ' + loop + \
+                     '_' + action + ' in cluster given from R' + \
+                     str(reactorno)+loop+'Control_status.vi'
+                continue
             for param in current[loop][loop+'_'+action]:
                 # Loop through 'commands' for given loop and action.
                 # i.e. ph_manual -> acid pump & base pump

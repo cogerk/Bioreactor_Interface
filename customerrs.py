@@ -20,6 +20,7 @@ class InvalidValue(BaseException):
     """
     pass
 
+
 class MissingKey(BaseException):
     """
     No 'secretkey.txt' file in the directory
@@ -27,9 +28,43 @@ class MissingKey(BaseException):
     pass
 
 
-class CannotReachController(Warning):
+class CannotReachController(BaseException):
     """
     Was unable to reach controller
+    """
+    pass
+
+class UnfoundStatus(BaseException):
+    """
+    Could not find status of a particular loop
+    """
+    pass
+
+
+class IncorrectClusterOrder(BaseException):
+    """
+    Was unable to reach controller
+    """
+    pass
+
+
+class CannotReachControllerWarn(Warning):
+    """
+    Was unable to reach controller
+    """
+    pass
+
+
+class CannotReachReactor(BaseException):
+    """
+    Was unable to reach reactor
+    """
+    pass
+
+
+class CannotReachReactorWarn(Warning):
+    """
+    Was unable to reach reactor
     """
     pass
 

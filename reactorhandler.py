@@ -3,17 +3,15 @@ Supporting utility to get reactor control loops, signals, & constants from rct
 Written By: Kathryn Cogert
 Feb 27 2017
 """
-import urllib.request
-import urllib.error
+# TODO: Refresh loops options
 import dateutil.parser
 import warnings
 
-from xml.etree import ElementTree
-from pytz import timezone
 from datetime import datetime
 
 import customerrs
-from utils import build_url
+from utils import call_reactor
+from rutils import build_url, call_reactor
 
 
 def get_probe_snap(ip, port, reactorno):
@@ -27,8 +25,9 @@ def get_probe_snap(ip, port, reactorno):
     for signal in signal_ele_tree:
         if 'Timestamp' in signal[0].text:
             stamp = dateutil.parser.parse(signal[1].text)
-            stamp = stamp.astimezone(timezone('US/Pacific'))
             data[signal[0].text] = stamp
+        elif 'Reactor Status' in signal[0].text:
+            data[signal[0].text] = signal[1].text
         else:
             signal_val_tree = list(zip(signal[1].findall('Name'),
                                    signal[1].findall('Value')))
@@ -65,11 +64,13 @@ def get_signal_snap(ip, port, reactorno):
                                signals.findall('Value')))
     data = {}
     units = {}
+
     for signal in signal_ele_tree:
         if 'Timestamp' in signal[0].text:
             stamp = dateutil.parser.parse(signal[1].text)
-            stamp = stamp.astimezone(timezone('US/Pacific'))
             data[signal[0].text] = stamp
+        elif 'Reactor Status' in signal[0].text:
+            data[signal[0].text] = signal[1].text
         else:
             signal_val_tree = list(zip(signal[1].findall('Name'),
                                    signal[1].findall('Value')))
@@ -80,10 +81,14 @@ def get_signal_snap(ip, port, reactorno):
                         un = sig_val[0].text.split(', ')
                         units[signal[0].text+' Flowrate'] = un[1]
                 else:
+                    # User needs to format signals in get signals cluster as Cluster(Signal Name: [Signal, mA], [Value, units]) otherwise no units will be detected
                     if 'Signal' in sig_val[0].text:
                         data[signal[0].text] = sig_val[1].text
                         un = sig_val[0].text.split(', ')
-                        units[signal[0].text] = un[1]
+                        try:
+                            units[signal[0].text] = un[1]
+                        except IndexError:
+                            units[signal[0].text] = None
     if data == {}:
         currenttime = str(datetime.now())
         warnstr = 'At' + \
@@ -105,19 +110,8 @@ def get_signals(ip, port, reactorno):
     """
     signal_vi = 'R'+str(reactorno)+'GetSignals'
     signal_url = build_url(ip, port, reactorno, signal_vi)
-    try:
-        result = urllib.request.urlopen(signal_url).read()
-        root = ElementTree.fromstring(result)
-        signals = root[0][1]
-    except urllib.error.HTTPError:
-        warnings.warn(
-            'While searching for signals, cannot find Reactor #' +
-            str(reactorno),
-            customerrs.CannotReachController)
-        signals = None
-    except urllib.error.URLError:
-        warnings.warn('Cannot find the cRIO.')
-        signals = None
+    root = call_reactor(ip, port, reactorno, signal_url)
+    signals = root[0][1]
     return signals
 
 
@@ -135,7 +129,7 @@ def get_signal_list(ip, port, reactorno):
     signal_ele_tree = signals.findall('Name')
     signal_list = []
     for signal in signal_ele_tree:
-        if 'Timestamp' in signal.text:
+        if 'Timestamp' in signal.text or 'Reactor Status' in signal.text:
             continue
         if 'VFD' in signal.text:
             signal_list.append(signal.text + ' RPM')
@@ -155,26 +149,15 @@ def get_loops(ip, port, reactorno):
     """
     loops_vi = 'R'+str(reactorno)+'GetLoops'
     loops_url = build_url(ip, port, reactorno, loops_vi)
-    try:
-        result = urllib.request.urlopen(loops_url).read()
-        root = ElementTree.fromstring(result)
-        loops = []
-        for loop in root[0][1].findall('Value'):
-            loops.append(loop.text)
-        return loops
-    except urllib.error.HTTPError:
-        warnings.warn(
-            'While searching for loops, could not find Reactor #' +
-            str(reactorno),
-            customerrs.CannotReachController)
-        loops = None
-    except urllib.error.URLError:
-        warnings.warn('Cannot find the cRIO.')
-        loops = None
+    root = call_reactor(ip, port, reactorno, loops_url)
+    loops =[]
+    for loop in root[0][1].findall('Value'):
+        loops.append(loop.text)
+    # Filter out any None values
+    loops = [x for x in loops if x is not None]
     return loops
 
-
-def get_other_constants(ip, port, reactorno):
+def get_other_constants(ip, port, crio, reactorno):
     """
     Gets a list of names of other reactor specific constants
     :param ip: str, the cRIO IP address
@@ -183,9 +166,9 @@ def get_other_constants(ip, port, reactorno):
     :return: list of other constants
     """
     other_vi = 'R'+str(reactorno)+'GetOtherConstants'
-    other_url = build_url(ip, port, reactorno, other_vi)
-    result = urllib.request.urlopen(other_url).read()
-    root = ElementTree.fromstring(result)
+    other_cmd = '?cRIONo=' + str(crio) + '&ReactorNo=' + str(reactorno)
+    other_url = build_url(ip, port, reactorno, other_vi, other_cmd)
+    root = call_reactor(ip, port, reactorno, other_url)
     other = []
     for constant in root[0][1].findall('Value'):
         other.append(constant.text)
@@ -202,8 +185,7 @@ def get_phases(ip, port, reactorno):
     """
     sbr_vi = 'R'+str(reactorno)+'SBRControl_Status'
     sbr_url = build_url(ip, port, reactorno, sbr_vi)
-    result = urllib.request.urlopen(sbr_url).read()
-    root = ElementTree.fromstring(result)
+    root = call_reactor(ip, port, reactorno, sbr_url)
     sbr_phases = []
     names = []
     vals = []
@@ -211,8 +193,9 @@ def get_phases(ip, port, reactorno):
         if terminal.find('Name').text == 'SBRData':
             names = terminal.find('Value').findall('Name')
             vals = terminal.find('Value').findall('Value')
-        else:
             break
+        else:
+            continue
     data = list(zip(names, vals))
     for category in data:
         if category[0].text == 'SBR_SetParams':
@@ -222,8 +205,16 @@ def get_phases(ip, port, reactorno):
                 names = pair.findall('Name')
                 vals = pair.findall('Value')
                 phase_info = list(zip(names, vals))
+                phase_name, time, units = '', 0, ''
                 for each in phase_info:
                     if each[0].text == 'Phase':
-                        sbr_phases.append(each[1].text)
+                        phase_name = each[1].text
+                    if 'Time' in each[0].text:
+                        time = float(each[1].text)
+                        try:
+                            units = ', ' + each[0].text.split(', ')[1]
+                        except IndexError:
+                            units = ', '
+                sbr_phases.append((phase_name + units, [time]))
             break
     return sbr_phases

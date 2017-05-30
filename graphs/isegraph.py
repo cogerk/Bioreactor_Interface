@@ -3,14 +3,12 @@ Create a graph of all probes for a given reactor
 Written 3/20/17
 By: Kathryn Cogert
 """
-# TODO: fix buttons
 import warnings
 from bokeh.plotting import figure
 from bokeh.models.widgets import Slider, CheckboxButtonGroup
-from bokeh.models import Legend, Range1d, LinearAxis
+from bokeh.models import Legend, Range1d, LinearAxis, Label
 from bokeh.layouts import widgetbox, layout
 from bokeh.util.warnings import BokehUserWarning
-import numpy as np
 from isehandler import get_ise_snap
 import graphs.plotmodels as mods
 
@@ -50,7 +48,8 @@ def ise_graph_builder(ip, port, reactor, ise_sigs):
                                 axis_label_text_font_size='14pt',
                                 axis_line_dash='dashdot',
                                 major_label_text_font_size='12pt'), 'right')
-
+        # Steady State Status
+        stat = mods.steady_state_stat()
         # Generate a unique line format for each probe
         line_form_dict = mods.assign_line_format(ise_sigs)
 
@@ -126,8 +125,6 @@ def ise_graph_builder(ip, port, reactor, ise_sigs):
         lgls = []
         for each in all_plots:
             lgls.append((each, [trace[each]]))
-        # TODO: Show if steady state, data is valid, etc.
-
 
         # Create widgets
         window_size = Slider(title="Time Frame, secs",
@@ -149,7 +146,6 @@ def ise_graph_builder(ip, port, reactor, ise_sigs):
         stream_speed = 500
         df = {}
         length_dt = 30
-        length_diff_dt = 30
 
         # Periodic Callback Function
         def stream():
@@ -174,10 +170,8 @@ def ise_graph_builder(ip, port, reactor, ise_sigs):
             last_plts = current_plts
             current_plts = plots_on.active
 
-
             # Get latest snapshot of data
             new_data, u = get_ise_snap(ip, port, reactor, ise)
-
             # *Manipulate timestamp and dt data*
             # If first time through, assign first data point
             delon = False
@@ -209,7 +203,7 @@ def ise_graph_builder(ip, port, reactor, ise_sigs):
                                length_dt][0]
                     except IndexError:
                         idx = 0
-                    df['Timestamp'] = df['Timestamp'][idx:-1]
+                    df['Timestamp'] = df['Timestamp'][idx:len(df['Timestamp'])]
                     df['dt'] = [ts-df['Timestamp'][0]
                                 for ts in df['Timestamp']]
             # *Manipulate aspects of plot affected by signals*
@@ -244,15 +238,20 @@ def ise_graph_builder(ip, port, reactor, ise_sigs):
                         del df[sig][0]
                 # If length is smaller than last time
                 else:
-                    df[sig] = df[sig][idx:-1]
+                    df[sig] = df[sig][idx:len(df[sig])]
                 # Assign data to graph
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore", category=BokehUserWarning)
                     ds[sig].data['x'], ds[sig].data['y'] = df['dt'], df[sig]
                 ds[sig].trigger('data', ds[sig].data, ds[sig].data)
 
-
-
+            # Update Steady State
+            if new_data[ise+' Steady State?'] is True:
+                stat.text = 'Steady State Status: OK'
+            elif new_data[ise+' Steady State?'] is False:
+                stat.text = 'Steady State Status: Unstable'
+            else:
+                stat.text = 'Steady State Status: Invalid'
             # Update legend
             if current_plts != last_plts:
                 customlegend.items = new_lgls
@@ -262,6 +261,7 @@ def ise_graph_builder(ip, port, reactor, ise_sigs):
 
         plot_btns = widgetbox(plots_on)
         doc.add_root(layout([[p],
+                             [stat],
                              [plot_btns],
                              [inputs]],
                             sizing_mode='scale_width'))

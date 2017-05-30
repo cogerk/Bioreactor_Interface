@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+{% from "_formhelpers.html" import render_field %}
+{% from "_backnav.html" import render_back_matter %}
+<html lang="en">
+<head>
+    <!-- Title webpage w/ reactor no -->
+    <title>Reactor Has No Constants</title>
+    <!-- Style Imports -->
+    <link
+      href="{{
+        url_for('static', filename='css/bootstrap.min.css') }} "
+      rel="stylesheet">
+    <link
+      href="{{
+        url_for('static', filename='css/custom.css') }} "
+      rel="stylesheet">
+    <!-- jquery imports for live updating -->
+    <script
+      src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js">
+    </script>
+    <script
+      type=text/javascript
+      src="{{ url_for('static', filename='jquery.js') }}"></script>
+    <script
+      src="https://npmcdn.com/tether@1.2.4/dist/js/tether.min.js">
+    </script>
+    <script
+      src="{{url_for('static', filename='js/bootstrap.min.js')}}">
+    </script>
+</head>
+<body class="container">
+     <div id="Title" class="row">
+        <!-- Title webpage w/ reactor no -->
+         <h1>
+            Could Not Find Constants for Reactor #{{reactorno}}
+        </h1>
+        <p id ="matter" class="row">
+            <h2>If you were expecting constants:</h2>
+        <br>
+        <ul>
+            <li>Are all variables located in appropriate library trees?</li>
+            <li>Are all variables string data type?</li>
+        </ul>
+
+    </p>
+            </h3>
+    </div>
+    <div id="back" class="row">
+        <div class="btn-group">
+            <a href="/" class="btn btn-secondary">
+                Return to Reactor Selection
+            </a>
+        </div>
+    </div>
+</body>
+</html>

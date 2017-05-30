@@ -3,34 +3,41 @@ Models and formatters for bokeh graphs
 Written By: Kathryn Cogert
 Mar 20 2017
 """
+from copy import copy
 from bokeh.models.formatters import DatetimeTickFormatter
-from bokeh.models import Paragraph, Range1d, LinearAxis
+from bokeh.models import Paragraph, DataRange1d, LinearAxis
 from bokeh.palettes import Dark2_6 as Palette
 # TODO: What is range for ORP Probe?
 
 # Assign plot colors to common things
 default_form_dict = {}
 default_line_width = 2
-default_form_dict['DO'] = (Palette[0], default_line_width)
-default_form_dict['pH'] = (Palette[1], default_line_width)
+default_form_dict['pH'] = (Palette[0], default_line_width)
+default_form_dict['DO'] = (Palette[1], default_line_width)
 default_form_dict['ORP'] = (Palette[2], default_line_width)
 default_form_dict['NH4'] = (Palette[3], default_line_width)
-
-
+default_form_dict['NH4 ISE'] = (Palette[3], default_line_width)
+#TODO: WHy doesn't this work?
 def assign_line_format(sigs):
     form_dict = {}
-    count = len(list(default_form_dict.keys()))
+    counts = copy(Palette)
+    copy_sigs = copy(sigs)
     linewidth = default_line_width
-    for idx, sig in enumerate(sigs):
-        if sig in list(default_form_dict.keys()):
-            form_dict[sig] = default_form_dict[sig]
+    # Remove default signals from list
+    for def_sig in list(default_form_dict.keys()):
+        if def_sig in copy_sigs:
+            form_dict[def_sig] = default_form_dict[def_sig]
+            counts.remove(default_form_dict[def_sig][0])
+            copy_sigs.remove(def_sig)
+    # Go through the rest of signals and assign unique color/line thickness
+    for idx, sig in enumerate(copy_sigs):
+        if len(counts) == 0:
+            counts = copy(Palette)
+            linewidth += 0.5
+            form_dict[sig] = (counts[0], linewidth)
         else:
-            if count == 5:
-                count = 0
-                linewidth += 0.5
-            else:
-                count += 1
-            form_dict[sig] = (Palette[count], linewidth)
+            form_dict[sig] = (counts[0], linewidth)
+            del counts[0]
     return form_dict
 
 
@@ -44,6 +51,12 @@ def steady_state_calcs(width):
     diff_label.css_classes = ['bokeh-labels']
     stdev_label.css_classes = ['bokeh-labels']
     return calc_title, avg_label, stdev_label, diff_label
+
+
+def steady_state_stat():
+    status = Paragraph(text='Invalid')
+    status.css_classes = ['btn btn-block btn-secondary active']
+    return status
 
 
 def format_plot(p, multi=False):
@@ -64,9 +77,10 @@ def format_plot(p, multi=False):
     p.yaxis.axis_label_text_font_size = '14pt'
     p.yaxis.major_label_text_font_size = '12pt'
     if multi:
-        p.extra_y_ranges = {'2nd': Range1d(start=0, end=1000)}
+        p.extra_y_ranges = {'2nd': DataRange1d()}
         p.add_layout(LinearAxis(y_range_name='2nd',
                                 axis_label_text_font_size = '14pt',
-                                major_label_text_font_size = '12pt'),
+                                major_label_text_font_size = '12pt',
+                                axis_line_dash='dashed'),
                      'right')
     return p

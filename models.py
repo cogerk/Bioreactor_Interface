@@ -1,6 +1,7 @@
 from __init__ import db
 from flask_admin.contrib.sqla import ModelView #Flask-SQLAlchemy
 
+
 # Reactor Database
 class Reactor(db.Model):
     idx = db.Column(db.Integer, primary_key=True)
@@ -34,7 +35,7 @@ class Controller(db.Model):
         self.idx = idx
         self.ip = ip
         self.port = port
-        self.debug_port =debug_port
+        self.debug_port = debug_port
         self.controller_type = controller_type
 
     def __repr__(self):

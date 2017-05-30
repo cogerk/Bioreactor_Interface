@@ -4,7 +4,7 @@
 <html lang="en">
 <head>
     <!-- Title webpage w/ reactor no -->
-    <title>Calibrate Reactor {{reactor}} Signals</title>
+    <title>Error: Cannot Find Controller</title>
     <!-- Style Imports -->
     <link
       href="{{
@@ -32,17 +32,18 @@
      <div id="Title" class="row">
         <!-- Title webpage w/ reactor no -->
          <h1>
-            Was Unable to find Reactor #{{reactorno}}
+            Was Unable to find cRIO at IP: {{ip}}
         </h1>
     </div>
-    <div id ="matter" class="row">
-        <ul><h2>Try the following:</h2>
-            <li>Is webserivice running on cRIO?</li>
-            <li>Is cRIO IP correct in database?</li>
-            <li>Is port # correct in database?</li>
+    <p id ="matter" class="row">
+        <h2>Try the following:</h2>
+        <br>
+        <ul>
+            <li>Is cRIO on?</li>
+            <li>Is cRIO connected to internet?</li>
+            <li>Are cRIO IPs and ports correct in database?</li>
         </ul>
-
-    </div>
+    </p>
     <div id="back" class="row">
         <div class="btn-group">
             <a href="/" class="btn btn-secondary">

@@ -6,17 +6,22 @@ and reading current values into a dictionary
 Written By: Kathryn Cogert
 Feb 1 2017
 """
-import urllib.request
-from xml.etree import ElementTree
+import dateutil.parser
+
+import rutils
 import utils
 import customerrs as cust
 import reactorhandler as rctr
+# TODO: Quads for switch and boolean controllers
+# TODO: Comparisons for
+# TODO: Idents when out of range when switch is on
 
 
 def get_submitted(form, current):
     """
     Gets the submitted values sent via a post request and store in dictionary
     :param form: form object, the submitted form via post request
+    :param current: dict, current values from the reactor
     :return: dict/bool, dictionary of input names and defaults in get_inputs()
         format/if loop switch just a bool
     """
@@ -73,9 +78,9 @@ def translate_to_ws(reactorno, loop, action, params=None, current=None):
         raise cust.InvalidAction
     command = '?'  # All command strings are prefaced w/ ? in the URL
     # If status, command will be blank string
-    if action == 'Switch': # If switch mode, build command and exit func
-       command = command+'control_on=' + str(int(params))
-       return vi_to_run, command
+    if action == 'Switch':  # If switch mode, build command and exit func
+        command = command+'control_on=' + str(int(params))
+        return vi_to_run, command
     if action != 'Status':
         # SBR loop has special rules for cmd str b/c so many inputs
         params = [x for x in params if x not in current[loop][loop+'_'+action]]
@@ -106,7 +111,8 @@ def translate_to_ws(reactorno, loop, action, params=None, current=None):
     return vi_to_run, command
 
 
-def submit_to_reactor(ip, port, reactorno, loop, action, params=None, current=None):
+def submit_to_reactor(ip, port, reactorno, loop, action,
+                      params=None, current=None):
     """
     Submits new control command as a POST request to reactor and returns status
     :param ip: str, the cRIO IP address
@@ -114,7 +120,7 @@ def submit_to_reactor(ip, port, reactorno, loop, action, params=None, current=No
     :param reactorno: int, # of the reactor
     :param loop: str, control loop in question
     :param action: str, action to take
-    :param params: dict, parameters to write
+    :param params: dict, parameters to write (None if reading status)
     :param current: dict, current values before we submit to reactor
     :return: status, str, write success?, if status, return dict
     """
@@ -122,24 +128,22 @@ def submit_to_reactor(ip, port, reactorno, loop, action, params=None, current=No
     [vi, cmdstrs] = translate_to_ws(reactorno, loop, action, params, current)
     # Build the URL to send & send it
     if action != 'Status':
-        if cmdstrs == []:
+        if not cmdstrs:
             status = 'Nothing written, no new values submitted via form.'
             return status
         if not isinstance(cmdstrs, list):
-            get_url = utils.build_url(ip, port, reactorno, vi, cmdstrs)
+            get_url = rutils.build_url(ip, port, reactorno, vi, cmdstrs)
             print(get_url)
-            result = urllib.request.urlopen(get_url).read()
-            root = ElementTree.fromstring(result)
+            root = rutils.call_reactor(ip, port, reactorno, get_url)
             status = 'No Command Submitted'
             for terminal in root:
                 if terminal.find('Name').text == 'ControlStatus':
                     status = terminal.find('Value').text
         else:  # Special rules for SBR forms, loop through each param to submit
             for idx, cmd in enumerate(cmdstrs):
-                get_url = utils.build_url(ip, port, reactorno, vi, cmd)
+                get_url = rutils.build_url(ip, port, reactorno, vi, cmd)
                 print(get_url)
-                result = urllib.request.urlopen(get_url).read()
-                root = ElementTree.fromstring(result)
+                root = rutils.call_reactor(ip, port, reactorno, get_url)
                 status = 'No Command Submitted'
                 # For SBR see if all vals got written, but only return one stat
                 for terminal in root:
@@ -154,15 +158,14 @@ def submit_to_reactor(ip, port, reactorno, loop, action, params=None, current=No
                     else:
                         statuslast = status
     else:
-        get_url = utils.build_url(ip, port, reactorno, vi, cmdstrs)
-        result = urllib.request.urlopen(get_url).read()
-        root = ElementTree.fromstring(result)
+        get_url = rutils.build_url(ip, port, reactorno, vi, cmdstrs)
+        root = rutils.call_reactor(ip, port, reactorno, get_url, status=True)
         status = {}
         # Convert XML into dict of dicts
         names = []
         vals = []
         for terminal in root:
-            if terminal.find('Name').text == loop+'Data':
+            if terminal.find('Name').text == loop + 'Data':
                 names = terminal.find('Value').findall('Name')
                 vals = terminal.find('Value').findall('Value')
                 break
@@ -170,32 +173,39 @@ def submit_to_reactor(ip, port, reactorno, loop, action, params=None, current=No
         for each in data:
             if each[1].text:
                 value = utils.convert_to_datatype(each)
-                status[each[0].text] = value
+                status[each[0].text.strip()] = value
             else:
-                status[each[0].text] = {}
+                status[each[0].text.strip()] = {}
                 names2 = each[1].findall('Name')
                 vals2 = each[1].findall('Value')
                 data2 = list(zip(names2, vals2))
                 for each2 in data2:
                     # Special rules for SBR control parameters
-                    if each2[0].text == 'Phase Timing Pairs':
-                        phase_pair = [x.text for x in each2[1].findall('Value')]
-                        phase_pair[1] = int(phase_pair[1])
+                    if each2[0].text == 'Phase Timing Pair':
+                        phase_pair = [x.text for x in each2[1].findall('Value') if x.text is not None]
+                        # TODO: Reactor SBR Phase Control Page
+                        try:
+                            phase_pair[1] = int(phase_pair[1])
+                        except ValueError:
+                            raise cust.IncorrectClusterOrder(
+                                'User needs to make sure that '
+                                'phase name is first (0) in cluster')
                         phase_pair = tuple(phase_pair)
-                        if status[each[0].text] == {}:
-                            status[each[0].text] = [phase_pair]
+                        if status[each[0].text.strip()] == {}:
+                            status[each[0].text.strip()] = [phase_pair]
                         else:
-                            temp = status[each[0].text]
+                            temp = status[each[0].text.strip()]
                             temp.append(phase_pair)
-                            status[each[0].text] = temp
+                            status[each[0].text.strip()] = temp
                     else:
                         value = utils.convert_to_datatype(each2)
-                        if status[each[0].text] == {}:
-                            status[each[0].text] = [(each2[0].text, value)]
+                        if status[each[0].text.strip()] == {}:
+                            status[each[0].text.strip()] = \
+                                [(each2[0].text, value)]
                         else:
-                            temp = status[each[0].text]
-                            temp.append((each2[0].text, value))
-                            status[each[0].text] = temp
+                            temp = status[each[0].text.strip()]
+                            temp.append((each2[0].text.strip(), value))
+                            status[each[0].text.strip()] = temp
     return status
 
 
@@ -213,7 +223,88 @@ def get_current(ip, port, reactorno):
     if loop_list is None:
         return None, None
     for loop in loop_list:
-        current[loop] = submit_to_reactor(ip, port, reactorno, loop, 'Status')
+        try:
+            current[loop] = submit_to_reactor(ip, port, reactorno, loop,
+                                              'Status')
+        except cust.UnfoundStatus as e:
+            print(e)
+            current[loop] = 'Unable to access R' + str(reactorno) + loop + 'Control_Status.vi'
     return current, loop_list
 
 
+def get_loop_snap(ip, port, reactorno, loop):
+    """
+
+    :param ip:
+    :param port:
+    :param reactorno:
+    :param loop:
+    :return:
+        data, dict of snapshot of data relevant to control loop
+        track, list of names of data relevant to control loop
+        acts, list of actuators
+        bool_acts, bool are all actuators boolean actuators?
+    """
+    loop_status = submit_to_reactor(ip, port, reactorno, loop, 'Status')
+    acts = loop_status[loop+'_Manual']
+
+    # Determine if control loop has boolean actuators
+    bool_acts = all([type(x[1]) is bool for x in acts])
+    # TODO: Make a 2nd axis if not boolean actuators
+    # TODO: Determine if automated control online
+    # Pick out all lines to plot for loop
+    track = []
+    acts = ['Manual Control On']
+    data = {}
+    for each in loop_status.keys():
+        # We want a probe graph
+        if '_Probe' in each:
+            line = each.split('_')[0]
+            for each2 in loop_status[each]:
+                if 'Value' in each2[0]:
+                    if 'Raw' in each2[0]:
+                        continue
+                    else:
+                        line = each2[0].replace('Value', line)
+                        line = line.replace('Corrected ', '')
+                        data[line] = each2[1]
+                        track.append(line)
+                        break
+        # MFC measured flowrates should be graphs
+        elif '_Switch' in each:
+            data['Manual Control On'] = not bool(loop_status[each])
+        elif '_MFC' in each:
+            # Important! Set point and measured MFC vals have same units
+            line = each.replace('_MFC', ' MFC Flowrate')
+            for each2 in loop_status[each]:
+                if 'Value' in each2[0]:
+                    line = each2[0].replace('Value', line)
+                    data[line] = each2[1]
+                    track.append(line)
+        # Manual controls
+        elif '_Manual' in each:
+            for each2 in loop_status[each]:
+                # If boolean, store status in snapshot but don't make graph
+                if bool_acts:
+                    line = each2[0]
+                    point = bool(each2[1])
+                # If not boolean add to graph too
+                else:
+                    line = 'Set ' + each2[0]
+                    point = float(each2[1])
+                data[line] = point
+                acts.append(line)
+        # Get set point as a graph and also collect tolerance data but no graph
+        elif '_SetParams' in each:
+            for each2 in loop_status[each]:
+                if 'Set Point' in each2[0]:
+                    line = loop + ' ' + each2[0]
+                    data[line] = each2[1]
+                    track.append(line)
+                elif 'Tolerance' in each2[0]:
+                    line = loop + ' ' + each2[0]
+                    data[line] = each2[1]
+        elif 'Timestamp' == each:
+            # Convert timestamp to python timestamp
+            data['Timestamp'] = dateutil.parser.parse(loop_status[each])
+    return data, track, acts, bool_acts

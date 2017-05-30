@@ -133,6 +133,27 @@ $(document).ready(function(){
             $(that.form).submit()
         }, 1)
     });
+
+    setInterval(
+        function () {
+            var status=$('p:contains("Steady State Status:")')
+            var statustext= $(status).text()
+            var statdiv = $(status).parents()[1]
+            if (statustext == "Steady State Status: OK") {
+                console.log($(statdiv).prop('class'))
+                $(statdiv).prop('class', 'bk-widget bk-layout-scale_width btn btn-block btn-success active')
+            }
+            else if (statustext == "Steady State Status: Unstable"){
+                $(statdiv).prop('class', 'bk-widget bk-layout-scale_width btn btn-block btn-danger active')
+            }
+            else {
+                $(statdiv).prop('class', 'bk-widget bk-layout-scale_width btn btn-block btn-secondary active')
+            }
+        },
+        500);
 });
+
+
+
 
 </script>

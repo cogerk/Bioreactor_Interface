@@ -1,5 +1,4 @@
 import os
-
 import config
 from __init__ import app
 

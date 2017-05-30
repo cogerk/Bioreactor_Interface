@@ -3,9 +3,11 @@ Supporting utility functions for remote control panel
 Written By: Kathryn Cogert
 Jan 25 2017
 """
-from __init__ import models
 import customerrs
 
+# User will need to ensure that they have the right variable library structure, especially for calibration constants.
+#b/c you will need ni.var.psp://cRIO#-WinklerLab/R#Variables/R#CalibrationConstants in calibration constant assignment VI
+# TODO: debug Sending cRIO# and Reactor Number to calibration constant setting guy
 # >Define Constants
 # List of actions you can take on a control Loop
 ACTIONS = ['Switch',  # Switch control loop on or off
@@ -23,6 +25,7 @@ ISE_RULES = {'Equilibrium': 'Eq',
              'Correction Factor': 'CF',
              'Concentration': 'Conc'}
 
+# TODO: Can I use this?
 # Chemical Compounds
 CHEMS = {'Sodium': 'Na',
          'Potassium': 'K',
@@ -42,37 +45,15 @@ CHEMS = {'Sodium': 'Na',
          'Perchlorate': 'CLO4',
          'Thiocyanate': 'SCN',
          'Chloride': 'Cl',
-         'Lead': 'Pb' }
+         'Lead': 'Pb'}
 
 # List of types of on/off actuators that require boolean inputs
 BOOL_ACTS = ['Pump', 'Valve', 'Switch', 'On', '?']
 
-TRI_ACTS =['Steady State?', 'SteadyState?']
+TRI_ACTS = ['Steady State?', 'SteadyState?']
+
 
 # >Utility Functions
-def build_url(ip, port, reactorno, vi_to_run, command=''):
-    """
-    Builds a GET request url that the cRIO will understand
-    :param ip: str, the cRIO IP address
-    :param port: int, the port of the webservice
-    :param reactorno: int, # of the reactor
-    :param vi_to_run: str, the name of the vi in the cRIO webservice
-    :param command: str, the command to pass to the GET request
-    :return:
-    """
-    r_name = 'R'+str(reactorno)
-    url = 'http://'+ip+':'+str(port)+'/'+r_name+'/'+vi_to_run+command
-    return url
-
-
-def get_controller_info(reactorno, debug=False):
-    reactor = models.Reactor.query.filter_by(idx=reactorno).first()
-    ip = reactor.controller.ip
-    if debug:
-        port = reactor.controller.debug_port
-    else:
-        port = reactor.controller.port
-    return ip, port
 
 
 def convert_to_localvar(labelstr):
@@ -96,7 +77,7 @@ def convert_to_datatype(xmlarray):
         value = float(xmlarray[1].text)
     except ValueError:
         value = xmlarray[1].text
-
+    # TODO: Get rid of GetOtherConstants and instead use cRIO umber
     name = convert_to_localvar(xmlarray[0].text)
     for actuator in TRI_ACTS:
         if actuator == name[len(name) - len(actuator):len(name)]:
@@ -106,6 +87,9 @@ def convert_to_datatype(xmlarray):
                 value = None
             return value
     for actuator in BOOL_ACTS:
+        # If this is a timer (i.e. pH control system, assign as float)
+        if actuator + 'Time' in name:
+            return value
         if actuator == name[len(name)-len(actuator):len(name)]:
             if value in [0, 1]:
                 value = bool(value)

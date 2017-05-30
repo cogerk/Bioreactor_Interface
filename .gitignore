@@ -2,3 +2,7 @@
 /secretkey.txt
 /reactors.db
 /graphs/examples/
+/data/client_secrets.json
+/data/credentials.json
+/data/settings.yaml
+/data/mycreds.txt

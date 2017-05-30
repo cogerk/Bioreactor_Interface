@@ -8,11 +8,13 @@ Feb 1 2017
 """
 import urllib.request
 from xml.etree import ElementTree
+
+import rutils
 import utils
 import reactorhandler as rctr
 
 
-
+# TODO: If webservice is down, send to can't find page from anywhere.
 def get_submitted(form):
     """
     Gets the submitted values sent via a post request and store in dictionary
@@ -25,6 +27,7 @@ def get_submitted(form):
 
 
 def translate_to_ws(reactorno,
+                    crio,
                     signal,
                     to_write=None):
     """
@@ -39,17 +42,22 @@ def translate_to_ws(reactorno,
     r_name = 'R'+str(reactorno)
     vi_name = r_name + 'SetCalibrateConstant'
     # Both cmd strings will start wih
-    cmd_str = '?Signal=' + signal + '&Write='
+    cmd_str = ''
+    cmd_str = cmd_str.join(['?ReactorNo=', str(reactorno),
+                            '&cRIONo=', str(crio),
+                            '&Signal=', signal,
+                            '&Write='])
     cmd_str = cmd_str.replace(' ', '%20')
     # First iteration builds slope cmd string, second builds intercept cmd str
     if to_write is not None:  # Write Mode
-        cmd_str += '1&Slope=' + str(to_write[0]) + '&Intercept=' + str(to_write[1])
+        cmd_str += '1&Slope=' + str(to_write[0]) \
+                   + '&Intercept=' + str(to_write[1])
     else:  # Read Mode
-        cmd_str += '0&Slope=0&Intercept=0'
+        cmd_str += '0'
     return vi_name, cmd_str
 
 
-def submit_to_reactor(ip, port, reactorno, signal, values):
+def submit_to_reactor(ip, port, crio, reactorno, signal, values):
     """
     Submits new constant as a POST request to reactor and returns status
     :param ip: str, the cRIO IP address
@@ -60,10 +68,10 @@ def submit_to_reactor(ip, port, reactorno, signal, values):
     :return: (float, float), slope & intercept.  If
     """
     # Translate to vi name & command string that cRIO can read
-    vi, cmdstr = translate_to_ws(reactorno, signal, values)
+    vi, cmdstr = translate_to_ws(reactorno, crio, signal, values)
     # Statuses will start with this (if write mode)
-     # Build the URL to send & send it
-    get_url = utils.build_url(ip, port, reactorno, vi, cmdstr)
+    # Build the URL to send & send it
+    get_url = rutils.build_url(ip, port, reactorno, vi, cmdstr)
     result = urllib.request.urlopen(get_url).read()
     # Result is an XML tree, parse this to see if command was sent
     root = ElementTree.fromstring(result)
@@ -76,19 +84,17 @@ def submit_to_reactor(ip, port, reactorno, signal, values):
             status_vals_xml = status_xml.findall('Value')
             for idx, each in enumerate(status_vals_xml):
                 status[idx] = each.text
-        if 'Intercept' in terminal.find('Name').text:
+        if 'NewIntercept' in terminal.find('Name').text:
             intercept = terminal.find('Value').text
-        if 'Slope' in terminal.find('Name').text:
+        if 'NewSlope' in terminal.find('Name').text:
             slope = terminal.find('Value').text
-    if intercept is None or intercept == 'Inf':
-        intercept = status[0]
-    if slope is None or slope == 'Inf':
-        slope = status[-1]
     # If command sent specified read mode, get the value returned
+    if status[0] == status[-1]:
+        status = [status[0]]
     return status, slope, intercept
 
 
-def get_all_current(ip, port, reactorno):
+def get_all_current(ip, port, crio, reactorno):
     """
     Loops through reactor signals and return current slopes/ints in two dicts
     :param ip: str, the cRIO IP address
@@ -98,11 +104,17 @@ def get_all_current(ip, port, reactorno):
     """
     all_slopes = {}
     all_ints = {}
+    all_stats = {}
     signal_list = rctr.get_signal_list(ip, port, reactorno)
     for signal in signal_list:
-        stats, slope, intercept = submit_to_reactor(ip, port, reactorno, signal, None)
+        stats, slope, intercept = submit_to_reactor(ip,
+                                                    port,
+                                                    crio,
+                                                    reactorno,
+                                                    signal, None)
+        all_stats[signal] = stats
         all_slopes[signal] = slope
         all_ints[signal] = intercept
-    return signal_list, all_slopes, all_ints
+    return signal_list, all_slopes, all_ints, all_stats
 
 

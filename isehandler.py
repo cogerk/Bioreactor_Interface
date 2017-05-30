@@ -10,6 +10,8 @@ import dateutil.parser
 from xml.etree import ElementTree
 from datetime import datetime
 from pytz import timezone
+
+import rutils
 import utils
 import customerrs
 
@@ -91,7 +93,7 @@ def send_to_reactor(ip, port, reactorno, ise, command_dict, write=True):
     :return:
     """
     vi, command = translate_to_ws(reactorno, ise, command_dict, write)
-    get_url = utils.build_url(ip, port, reactorno, vi, command)
+    get_url = rutils.build_url(ip, port, reactorno, vi, command)
     result = urllib.request.urlopen(get_url).read()
     root = ElementTree.fromstring(result)
     status = 'No Command Submitted'
@@ -107,7 +109,7 @@ def send_to_reactor(ip, port, reactorno, ise, command_dict, write=True):
 
 def get_ise(ip, port, reactorno, ise):
     ise_vi = 'R'+str(reactorno) + ise + 'ISE_Status'
-    ise_url = utils.build_url(ip, port, reactorno, ise_vi)
+    ise_url = rutils.build_url(ip, port, reactorno, ise_vi)
     try:
         result = urllib.request.urlopen(ise_url).read()
         root = ElementTree.fromstring(result)
