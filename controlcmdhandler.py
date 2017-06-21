@@ -8,7 +8,7 @@ Feb 1 2017
 """
 import dateutil.parser
 
-import rutils
+import dbhandler
 import utils
 import customerrs as cust
 import reactorhandler as rctr
@@ -122,7 +122,7 @@ def submit_to_reactor(ip, port, reactorno, loop, action,
     :param action: str, action to take
     :param params: dict, parameters to write (None if reading status)
     :param current: dict, current values before we submit to reactor
-    :return: status, str, write success?, if status, return dict
+    :return: status, str, was write success? OR if status return dict
     """
     # Translate to vi name & command string that cRIO can read
     [vi, cmdstrs] = translate_to_ws(reactorno, loop, action, params, current)
@@ -132,18 +132,18 @@ def submit_to_reactor(ip, port, reactorno, loop, action,
             status = 'Nothing written, no new values submitted via form.'
             return status
         if not isinstance(cmdstrs, list):
-            get_url = rutils.build_url(ip, port, reactorno, vi, cmdstrs)
+            get_url = utils.build_url(ip, port, reactorno, vi, cmdstrs)
             print(get_url)
-            root = rutils.call_reactor(ip, port, reactorno, get_url)
+            root = utils.call_reactor(ip, port, reactorno, get_url)
             status = 'No Command Submitted'
             for terminal in root:
                 if terminal.find('Name').text == 'ControlStatus':
                     status = terminal.find('Value').text
         else:  # Special rules for SBR forms, loop through each param to submit
             for idx, cmd in enumerate(cmdstrs):
-                get_url = rutils.build_url(ip, port, reactorno, vi, cmd)
+                get_url = utils.build_url(ip, port, reactorno, vi, cmd)
                 print(get_url)
-                root = rutils.call_reactor(ip, port, reactorno, get_url)
+                root = utils.call_reactor(ip, port, reactorno, get_url)
                 status = 'No Command Submitted'
                 # For SBR see if all vals got written, but only return one stat
                 for terminal in root:
@@ -158,8 +158,8 @@ def submit_to_reactor(ip, port, reactorno, loop, action,
                     else:
                         statuslast = status
     else:
-        get_url = rutils.build_url(ip, port, reactorno, vi, cmdstrs)
-        root = rutils.call_reactor(ip, port, reactorno, get_url, status=True)
+        get_url = utils.build_url(ip, port, reactorno, vi, cmdstrs)
+        root = utils.call_reactor(ip, port, reactorno, get_url, status=True)
         status = {}
         # Convert XML into dict of dicts
         names = []
@@ -184,6 +184,8 @@ def submit_to_reactor(ip, port, reactorno, loop, action,
                     if each2[0].text == 'Phase Timing Pair':
                         phase_pair = [x.text for x in each2[1].findall('Value') if x.text is not None]
                         # TODO: Reactor SBR Phase Control Page
+                        # TODO: Network health eval button
+                        # TODO: Repopulate loops on command
                         try:
                             phase_pair[1] = int(phase_pair[1])
                         except ValueError:

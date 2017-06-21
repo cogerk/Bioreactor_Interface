@@ -1,6 +1,5 @@
 # start.sh
 
-python bokehservermanager.py &
 python main.py && fg
 
 # Util commands:

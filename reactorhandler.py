@@ -10,8 +10,7 @@ import warnings
 from datetime import datetime
 
 import customerrs
-from utils import call_reactor
-from rutils import build_url, call_reactor
+import utils
 
 
 def get_probe_snap(ip, port, reactorno):
@@ -54,6 +53,7 @@ def get_probe_snap(ip, port, reactorno):
                   'data from Reactor #' + \
                   reactorno + \
                   'could not be collected.'
+        print(warnstr)
         warnings.warn(warnstr, customerrs.DataNotCollected)
     return data, units
 
@@ -109,8 +109,8 @@ def get_signals(ip, port, reactorno):
     :return: element tree of signal data
     """
     signal_vi = 'R'+str(reactorno)+'GetSignals'
-    signal_url = build_url(ip, port, reactorno, signal_vi)
-    root = call_reactor(ip, port, reactorno, signal_url)
+    signal_url = utils.build_url(ip, port, reactorno, signal_vi)
+    root = utils.call_reactor(ip, port, reactorno, signal_url)
     signals = root[0][1]
     return signals
 
@@ -138,7 +138,7 @@ def get_signal_list(ip, port, reactorno):
             signal_list.append(signal.text)
     return signal_list
 
-
+# TODO: Return string table class?
 def get_loops(ip, port, reactorno):
     """
     Gets a list of names of all calibratable signals in a reactor
@@ -148,14 +148,15 @@ def get_loops(ip, port, reactorno):
     :return: list of control loops in reactor
     """
     loops_vi = 'R'+str(reactorno)+'GetLoops'
-    loops_url = build_url(ip, port, reactorno, loops_vi)
-    root = call_reactor(ip, port, reactorno, loops_url)
-    loops =[]
+    loops_url = utils.build_url(ip, port, reactorno, loops_vi)
+    loops = []
+    root = utils.call_reactor(ip, port, reactorno, loops_url)
     for loop in root[0][1].findall('Value'):
         loops.append(loop.text)
     # Filter out any None values
     loops = [x for x in loops if x is not None]
     return loops
+
 
 def get_other_constants(ip, port, crio, reactorno):
     """
@@ -167,8 +168,8 @@ def get_other_constants(ip, port, crio, reactorno):
     """
     other_vi = 'R'+str(reactorno)+'GetOtherConstants'
     other_cmd = '?cRIONo=' + str(crio) + '&ReactorNo=' + str(reactorno)
-    other_url = build_url(ip, port, reactorno, other_vi, other_cmd)
-    root = call_reactor(ip, port, reactorno, other_url)
+    other_url = utils.build_url(ip, port, reactorno, other_vi, other_cmd)
+    root = utils.call_reactor(ip, port, reactorno, other_url)
     other = []
     for constant in root[0][1].findall('Value'):
         other.append(constant.text)
@@ -184,8 +185,8 @@ def get_phases(ip, port, reactorno):
     :return: List of phases in SBR cycle
     """
     sbr_vi = 'R'+str(reactorno)+'SBRControl_Status'
-    sbr_url = build_url(ip, port, reactorno, sbr_vi)
-    root = call_reactor(ip, port, reactorno, sbr_url)
+    sbr_url = utils.build_url(ip, port, reactorno, sbr_vi)
+    root = utils.call_reactor(ip, port, reactorno, sbr_url)
     sbr_phases = []
     names = []
     vals = []

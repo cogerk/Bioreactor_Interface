@@ -20,7 +20,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 import customerrs as cust
 
-if 'app' not in globals(): #For launching Bokeh: If app is already running
+if 'app' not in globals():  # For launching Bokeh: If app is already running
     app = Flask(__name__)
     try:
         with open('secretkey.txt') as myfile:

@@ -1,4 +1,5 @@
 import json
+import warnings
 from flask import render_template, request, redirect, flash, url_for
 from flask_admin import Admin
 from bokeh.embed import autoload_server
@@ -9,25 +10,54 @@ import calconstanthandler as calconst
 import constanthandler as const
 import controlcmdhandler as cmd
 import isehandler as isehd
-import rutils
+import dbhandler
 import utils
 from __init__ import app, db, models
 import forms as fo
+import sqlalchemy.exc
+import create_db
 # User needs status clusters titled as 'DOData'
-#TODO: LAbview add totalizers to all actuators
-# TODO: Replace compound shorts with names when displaying?
+# TODO: Labview add totalizers to all actuators
 # TODO: SBR Control Page
 # TODO: Improved Commenting
 # Setup reactor database for easy query
-reactors = models.Reactor.query.order_by(models.Reactor.idx).all()
+
+# Build models
+ControllerModelView, ReactorModelView, Reactor, Controller, StringTable = \
+    models.create_classes()
+
+# Find database if present, if not, make new
+try:
+    reactors = Reactor.query.order_by(Reactor.idx).all()
+    update = True
+except sqlalchemy.exc.OperationalError:
+    print('Database is incorrectly formatted or empty. '
+          'Please populate w/ first reactor')
+    create_db.make_db(Reactor, Controller, StringTable, debug=config.DEBUG)
+    reactors = Reactor.query.order_by(Reactor.idx).all()
+    update = False
+
+# Update loops for each reactor
+if update:
+    for r in reactors:
+        get_port = r.controller.debug_port \
+            if config.DEBUG else r.controller.port
+        try:
+            r_loops = rct.get_loops(r.controller.ip, get_port, r.idx)
+        except customerrs.CannotReachReactor as e:
+            warnings.warn(str(e), customerrs.CannotReachReactorWarn)
+            continue
+        r.loops = list(map(StringTable, r_loops))
+        db.session.commit()
+
 
 
 # Admin Stuff
 admin = Admin(app,
               name='Winkler Lab Reactor Manager',
               template_mode='bootstrap3')
-admin.add_view(models.ReactorModelView(models.Reactor, db.session))
-admin.add_view(models.ControllerModelView(models.Controller, db.session))
+admin.add_view(ReactorModelView(Reactor, db.session))
+admin.add_view(ControllerModelView(Controller, db.session))
 
 
 # Main Page
@@ -49,7 +79,7 @@ def select_reactor():
 
 @app.route('/reactor/<int:reactorno>/current', strict_slashes=False)
 def send_current(reactorno):
-    ip, port = rutils.get_controller_info(reactorno, debug=config.DEBUG)
+    ip, port = dbhandler.get_controller_info(reactorno, debug=config.DEBUG)
     reactorno = reactorno
     print('Updating')
     current, loop_list = cmd.get_current(ip, port, reactorno)
@@ -74,7 +104,7 @@ def could_not_find_c(reactorno):
            methods=['GET', 'POST'],
            strict_slashes=False)
 def control_reactor(reactorno):
-    ip, port = rutils.get_controller_info(1, debug=config.DEBUG)
+    ip, port = dbhandler.get_controller_info(1, debug=config.DEBUG)
     status = None
     try:
         loop_form_dict, current, loop_list = fo.build_control_forms(ip,
@@ -131,9 +161,9 @@ def control_reactor(reactorno):
            methods=['GET', 'POST'],
            strict_slashes=False)
 def calconstants(reactorno):
-    ip, port, crio = rutils.get_controller_info(reactorno,
-                                                debug=config.DEBUG,
-                                                crio=True)
+    ip, port, crio = dbhandler.get_controller_info(reactorno,
+                                                   debug=config.DEBUG,
+                                                   crio=True)
     try:
         signal_list, slopes, ints, status = calconst.get_all_current(ip,
                                                                      port,
@@ -185,7 +215,7 @@ def calconstants(reactorno):
 
 @app.route('/reactor/<int:reactorno>/ise', strict_slashes=False)
 def make_ise_list(reactorno):
-    ip, port = rutils.get_controller_info(reactorno, config.DEBUG)
+    ip, port = dbhandler.get_controller_info(reactorno, config.DEBUG)
     signals = rct.get_signal_list(ip, port, reactorno)
     ise_list = [(x, (x.split(' '))[0]) for x in signals if 'ISE' in x]
     return render_template('iselist.html',
@@ -197,7 +227,7 @@ def make_ise_list(reactorno):
            methods=['GET', 'POST'],
            strict_slashes=False)
 def make_ise_manager(reactorno, ise):
-    ip, port = rutils.get_controller_info(reactorno, config.DEBUG)
+    ip, port = dbhandler.get_controller_info(reactorno, config.DEBUG)
     form_dict, current = fo.build_ise_control_forms(ip, port, reactorno, ise)
     ise_setparam_forms = list(form_dict.keys())
     first = ise + ' ISE Parameters'
@@ -226,9 +256,9 @@ def make_ise_manager(reactorno, ise):
            methods=['GET', 'POST'],
            strict_slashes=False)
 def constants(reactorno):
-    ip, port, crio = rutils.get_controller_info(reactorno,
-                                                debug=config.DEBUG,
-                                                crio=True)
+    ip, port, crio = dbhandler.get_controller_info(reactorno,
+                                                   debug=config.DEBUG,
+                                                   crio=True)
     try:
         other_constants = const.get_all_current(ip, port, crio, reactorno)
     except customerrs.CannotReachReactor as e:

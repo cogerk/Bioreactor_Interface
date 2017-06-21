@@ -9,12 +9,10 @@ Feb 1 2017
 import urllib.request
 from xml.etree import ElementTree
 
-import rutils
+import dbhandler
 import utils
 import reactorhandler as rctr
 
-
-# TODO: If webservice is down, send to can't find page from anywhere.
 def get_submitted(form):
     """
     Gets the submitted values sent via a post request and store in dictionary
@@ -71,7 +69,7 @@ def submit_to_reactor(ip, port, crio, reactorno, signal, values):
     vi, cmdstr = translate_to_ws(reactorno, crio, signal, values)
     # Statuses will start with this (if write mode)
     # Build the URL to send & send it
-    get_url = rutils.build_url(ip, port, reactorno, vi, cmdstr)
+    get_url = utils.build_url(ip, port, reactorno, vi, cmdstr)
     result = urllib.request.urlopen(get_url).read()
     # Result is an XML tree, parse this to see if command was sent
     root = ElementTree.fromstring(result)

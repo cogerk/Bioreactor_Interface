@@ -1,4 +1,5 @@
-## Define Custom Errors
+# Define Custom Errors
+
 
 class InvalidAction(BaseException):
     """
@@ -34,6 +35,7 @@ class CannotReachController(BaseException):
     """
     pass
 
+
 class UnfoundStatus(BaseException):
     """
     Could not find status of a particular loop
@@ -68,16 +70,19 @@ class CannotReachReactorWarn(Warning):
     """
     pass
 
-class DataNotCollected(BaseException):
+
+class DataNotCollected(Warning):
     """
     Was unable to reach controller
     """
     pass
 
+
 class NonBoolean(Warning):
     """
     A non boolean value was written to a boolean actuator
     """
+
 
 class NotProperlyFormatted(Warning):
     """

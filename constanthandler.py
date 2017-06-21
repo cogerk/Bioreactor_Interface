@@ -9,7 +9,7 @@ Feb 1 2017
 import urllib.request
 from xml.etree import ElementTree
 
-import rutils
+import dbhandler
 import utils
 import reactorhandler as rctr
 
@@ -70,7 +70,7 @@ def submit_to_reactor(ip, port, reactorno, crio, name, value=None):
                                    name,
                                    value)
     # Build the URL to send & send it
-    get_url = rutils.build_url(ip, port, reactorno, vi, cmdstr)
+    get_url = utils.build_url(ip, port, reactorno, vi, cmdstr)
     print(get_url)
     result = urllib.request.urlopen(get_url).read()
     # Result is an XML tree, parse this to see if command was sent successfully
