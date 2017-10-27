@@ -9,26 +9,19 @@ to run python2.7 in a virtual environment for this to work.  UGH!
 
 
 """
-# TODO: cRIO side, DO and NH4 status calls
-#TODO: ALARM LOG
-#TODO: Visualization Tools
+# TODO: cRIO side, NH4 status calls
+# TODO: ALARM LOG
+
 import datetime
 import os
 import time
 import warnings
-
-import numpy as np
 import pandas as pd
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
-
 import customerrs as cust
 from controlcmdhandler import submit_to_reactor
 import data.datacustomerrs as datacust
-
-# TODO: rework errors so it only warns about missing status pages once
-# TODO: Use admin to find location of files https://flask-admin.readthedocs.io/en/latest/advanced/#managing-files-folders
-# TODO: Improved commenting and documention for this package
 
 """
 Define Constants
@@ -74,39 +67,43 @@ def remove_file(filename):
     return
 
 
-def get_newdata(no, ip, port, loop):
+def get_newdata(no, ip, port, loops):
     """
     Uses HTTP method to query cRIO server for reactor status of given loop
-    :param reactorno: int, this is the reactor in question
+    :param no: int, this is the reactor in question
     :param ip: str, this is the ip of the reactor in question
     :param port: int, this is the port to access the webservice on
+    :param loops: LoopTable, list of all control loops for reactor.
     :return: dataframe, this is a dataframe of requested values
     """
     # TODO: Send me an email if you can't connect to the cRIO
     # TODO: Generalize for all loops
     # TODO: Can we use this data when getting reactor status for control panel?
     # TODO: Reactor SBR Phase Control Page
-    try:
-        status = submit_to_reactor(ip, port, no, loop, 'Status')
-    except cust.UnfoundStatus:
-        currenttime = str(datetime.datetime.now())
-        e_str = 'At ' + currenttime + ' data from Reactor #' + \
-                str(no) + ' for loop ' + str(loop) + ' could not be collected.'
-        warnings.warn(e_str, cust.DataNotCollected)
-        raise cust.DataNotCollected(e_str)
-    new_dict = {}
-    for key in status:
-        if type(status[key]) is list:
-            for each in status[key]:
-                if each[0] == 'Timestamp':
-                    new_dict[(each[0], each[0])] = [each[1]]
-                else:
-                    new_dict[(key, each[0])] = [each[1]]
-        else:
-            new_dict[(key, key)] = [status[key]]
-    new_df = pd.DataFrame(new_dict)
-    new_df.set_index('Timestamp', inplace=True)
-    return new_df
+    new_dfs = {}
+    for loop in loops:
+        try:
+            status = submit_to_reactor(ip, port, no, str(loop), 'Status')
+        except cust.UnfoundStatus:
+            currenttime = str(datetime.datetime.now())
+            e_str = 'At ' + currenttime + ' data from Reactor #' + \
+                    str(no) + ' for loop ' + str(loop) + \
+                    ' could not be collected.'
+            warnings.warn(e_str, cust.DataNotCollected)
+            continue
+        new_dict = {}
+        for key in status:
+            if type(status[key]) is list:
+                for each in status[key]:
+                    if each[0] == 'Timestamp':
+                        new_dict[(each[0], each[0])] = [each[1]]
+                    else:
+                        new_dict[(key, each[0])] = [each[1]]
+            else:
+                new_dict[(key, key)] = [status[key]]
+        new_dfs[loop.string] = pd.DataFrame(new_dict)
+        new_dfs[loop.string].set_index('Timestamp', inplace=True)
+    return new_dfs
 
 
 def get_file_list(directory):
@@ -160,41 +157,12 @@ def find_folderid(folder_name, directory):
         raise datacust.NotMatching('No folder of that name in specified dir')
 
 
-def find_file(file_name, directory):
-    """
-    Returns a file of a given name in a given directory
-    :param file_name: str, this is the name of file of interest
-    :param directory: str, this is the folder ID of the directory of interest
-    :return: googledriveobject, this is the file you are looking for.
-    :exception NotMatching: if no folder of specified name is found, raise
-    exception
-    :exception NoFolders: if there are no folders in the specified directory,
-    raise exception
-    """
-    # get list of files from our directory of interest
-    file_list = get_file_list(directory)
-    # We'll use this to decide whether we need to raise an error later
-    no_files_here = True
-    for afile in file_list:
-        no_files_here = False  # We won't need to raise the error
-        if afile['title'] == file_name:
-            # Look for folder that matches name, and save the folder ID
-            fid = afile['id']
-            return afile
-    # If nothing matched, the name was wrong
-    if 'fid' in locals() or 'fid' in globals():
-        raise datacust.NotMatching('No file of that name in specified dir')
-    # if none of files in the list were folders, then say so.
-    if no_files_here:
-        raise datacust.NoFolders('There are no files in specified directory')
-
-
 def create_folder(name, parent_id):
         folder_metadata = {
             'title': name,
             'mimeType': 'application/vnd.google-apps.folder',
             'parents': [{"kind": "drive#fileLink",
-                         "id": parent_id} ]}
+                         "id": parent_id}]}
         folder = drive.CreateFile(folder_metadata)
         folder.Upload()
         return folder['id']
@@ -205,6 +173,7 @@ def find_reactorfolder(reactorno, loop):
     Finds the directory of a specified reactor. (reactors are numbered 1
     thru 6)
     :param reactorno: int, this is the reactor in question
+    :param loop: str, this is the control loop in question
     :return: str, this is the file ID of the specified reactor's directory
     :exception No Such Reactor: if no directory of the specified reactor
     exists, raise an error.
@@ -238,7 +207,7 @@ def find_reactorfolder(reactorno, loop):
         warnings.warn(warnstr, datacust.NoSuchReactor)
         # Create folder.
         loop_fid = create_folder(loop_folder_name,  r_fid)
-        #TODO: Email alarm when creating new folder
+        # TODO: Email alarm when creating new folder
     # TODO: unittest the error throwing
     if wlab_fid is None:
         raise datacust.InvalidDir('Cannot find ' + WLAB + ' Directory')
@@ -254,6 +223,7 @@ def list_rfiles_by_date(reactorno, loop, date=True):
     """
     Finds the list of reactor files and creates a key to sort by date
     :param reactorno: int, the number of reactor in question
+    :param loop: str, the control loop in question
     :param date: boolean, if true, give only latest file, else give all files
     :return: a file list or file and a key in format:
         [index in original file_list, days since creation,
@@ -264,13 +234,10 @@ def list_rfiles_by_date(reactorno, loop, date=True):
         ts_date = datetime.datetime.now()
     elif isinstance(date, str):
         ts_date = pd.to_datetime(date)
-        # TODO Error if this doesn't work
     elif isinstance(date, pd.tslib.Timestamp):
         ts_date = date
     elif date is None:
         ts_date = OLD
-
-    # TODO Else return an error
     # Get a list of files in the reactor's folder.
     tgt_folder_id = find_reactorfolder(reactorno, loop)
     all_file_list = get_file_list(tgt_folder_id)
@@ -284,15 +251,11 @@ def list_rfiles_by_date(reactorno, loop, date=True):
                 file_title = afile['title']
                 file_ts = datetime.datetime.strptime(file_title,
                                                      filename_format)
-                #except Exception as e:
-                #    # If can't parse file, let user know the organization sucks
-                #    print('Warning: ' + str(e))
-                #    continue  # skip this iteration
                 # If we can, add it to file list along with other identifiers
                 ts_delta = (datetime.datetime.combine(
                     ts_date, datetime.datetime.min.time())-file_ts).days
                 file_list.append((afile, ts_delta, afile['title'], file_ts))
-         # If we asked for latest, return only requested file
+        # If we asked for latest, return only requested file
         if date is not None:
             tgt_file = min([n for n in file_list if n[1] >= 0],
                            key=lambda n: n[1])
@@ -312,8 +275,9 @@ def find_make_reactorfile(reactorno,
     """
     Find latest or make new file in specified reactor's directory for writing
     :param reactorno: int, the number of reactor in question
+    :param loop: str, the control loop in question
+    :param to_write: dataframe, the data to save to the file
     :param collect_int: float, this is the number of secs between data pts.
-    :param make: boolean, if true (default) than make a new file if needed
     :param file_length: float, this is the number of days in a file.
     :return: our_file, this is the file
     """
@@ -338,10 +302,9 @@ def find_make_reactorfile(reactorno,
         # Create a new file with that name
         tgt_folder_id = find_reactorfolder(reactorno, loop)
         our_file = drive.CreateFile({'title': filename,
-                                          'mimeType': 'text/csv',
-                                          "parents":
-                                              [{"kind": "drive#fileLink",
-                                                "id": tgt_folder_id}]})
+                                     'mimeType': 'text/csv',
+                                     "parents": [{"kind": "drive#fileLink",
+                                                  "id": tgt_folder_id}]})
         to_write.to_csv('temp.csv')  # Convert to CSV
         our_file.SetContentFile('temp.csv')  # Write this to google drive
         remove_file('temp.csv')  # Remove temp file w/ first data pt
@@ -351,134 +314,82 @@ def find_make_reactorfile(reactorno,
         time.sleep(collect_int)  # Wait before collecting another pt
     return our_file
 
+
 # parse the dates
 def dateparser(datestring):
     try:
         date = pd.datetime.strptime(datestring, '%Y-%m-%d %H:%M:%S')
-    except:
+    except ValueError:
         try:
             date = pd.datetime.strptime(datestring, '%Y-%m-%d %H:%M')
-        except:
+        except ValueError:
             try:
                 date = pd.datetime.strptime(datestring, '%m/%d/%y %H:%M')
-            except:
+            except ValueError:
                 date = OLD
     return date
+
 
 def get_rfile(r_file):
     r_file.GetContentFile('temp.csv')
     # if dataframe, then return dataframe
     df = pd.read_csv('temp.csv',
                      header=[0, 1],
-                     index_col=idx,
+                     index_col=0,
                      parse_dates=True,
                      date_parser=dateparser)
     remove_file('temp.csv')
     return df
 
-"""
-def read_from_reactordrive(reactorno,
-                           date,
-                           csv=False,
-                           filename='temp.csv',
-                           date2=None):
 
-    Reads the google drive files for reactor data and saves as a csv or df
-    :param reactorno: int, the number of reactor in question
-    :param date: date to return values for
-    :param csv: boolean, downloads csv if true, df if false. default is df
-    :param filename: str, if csv, name of the file to save as, default is temp
-    :param date2: (optional) if seeking a range a values, 2nd date
-    :return:
-
-    # TODO, date 2 is already handled in r1datautils get_values_from.  Resolve.
-    # If we asked for latest, fine the latest file only.
-    if date is True:
-        our_file = list_rfiles_by_date(reactorno)
-        return_df = get_rfile(our_file[0])
-    else:
-        # If date was passed as a string, parse that.
-        if isinstance(date, str):
-        # TODO: Error if this is not good.
-            date = pd.to_datetime(date)
-        # If we gave only one date, find file that includes that date
-        file_list = list_rfiles_by_date(reactorno, date)
-        if date2 is None:
-            return_df = get_rfile(file_list[0])
-        # Otherwise, return all files between the two given dates
-        else:
-            # If date was passed as a string, parse that.
-            if isinstance(date2, str):
-                # TODO: Error if this is not good.
-                date2 = pd.to_datetime(date)
-            file_list2 = list_rfiles_by_date(reactorno, date2)
-            idx1 = file_list.index(
-                min(afile for afile in file_list if file[1] > 0))
-            idx2 = file_list2.index(
-                min(afile for afile in file_list2 if file[1] > 0))
-            if idx1 is idx2:
-                our_file = min(afile for afile in file_list if file[1]>0)
-                return_df = get_rfile(our_file[0])
-            else:
-                if idx1 < idx2:
-                    our_file = file_list[idx1:idx2+1]
-                else:
-                    our_file = file_list[idx2:idx1+1]
-                for each in our_file:
-                    df = get_rfile(each[0])
-                    try:
-                        return_df = return_df.append(df)
-                    except NameError:
-                        return_df = df
-    if csv:
-        return_df.to_csv(filename)
-    return return_df
-"""
-
-def write_to_reactordrive(no, ip, port, loops, collect_int, file_length):
+def write_to_buffer(no, ip, port, loops, collect_int, buffer_size):
     """
     Writes some latest dataframe to a specified file for a specified reactor
     :param no: int, this is the reactor # in question
     :param ip: ip, this is the ip of the controller of the reactor in q
     :param port: port, this is the port to access the
+    :param loops: LoopTable, control loops in reactor
     :param collect_int: float, this is the number of secs between data pts.
-    :param file_length: float, this is the number of days in a data file
+    :param buffer_size: int, the size of buffer to save before writing to drive
     """
     # Get latest data point from the reactor as a dataframe
+    all_df = get_newdata(no, ip, port, loops)
+    time.sleep(collect_int)
+    for _ in list(range(buffer_size-1)):
+        new_df = get_newdata(no, ip, port, loops)
+        for loop in loops:
+            if str(loop) in all_df.keys():
+                all_df[str(loop)] = pd.concat([all_df[str(loop)],
+                                              new_df[str(loop)]])
+        time.sleep(collect_int)
+    return all_df
+
+
+def write_to_reactordrive(no, ip, port, loops, collect_int, file_length,
+                          buffer_size):
+    to_write = write_to_buffer(no, ip, port, loops, collect_int, buffer_size)
     for loop in loops:
         try:
-            to_write = get_newdata(no, ip, port, str(loop))
-        except cust.DataNotCollected:
+            loop_to_write = to_write[str(loop)]
+        except KeyError:
             continue
         file_to_write = find_make_reactorfile(no,
                                               str(loop),
-                                              to_write,
+                                              loop_to_write,
                                               collect_int,
                                               file_length)
-            #ts_str = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
-            #print('Due to error with g drive file retrieval, ' + \
-            #      'skipped collection at ' + \
-            #      str(ts_str) + '\n')
-            #print(str(e))
-           # return
-        # Take all data in drive and convert to dataframe
-        #TODO: More efficient way to write to drive?
-        #TODO: Error if this block of code does not work
         file_to_write.GetContentFile('temp.csv')
         old_data = pd.read_csv('temp.csv',
                                header=[0, 1],
                                index_col=[0])
-        # TODO: User needs to include timestamp on all status pulls written exactly like this
-        # Append latest data point in local csv file
-        new_data = old_data.append(to_write)
+        # TODO: User needs to include timestamp on all status pulls
+        # Append buffer to file, upload and delete temp file.
+        new_data = pd.concat([old_data, loop_to_write])
         new_data.to_csv('temp.csv')
-        # Write to google drive file
         file_to_write.SetContentFile('temp.csv')
-        # Upload
         file_to_write.Upload()
-        # Delete that local file
+        print('Reactor #:'+str(no)+' '+str(loop)+' loop saved.')
         remove_file('temp.csv')
-        # If latest data point had a new column, add to all past files
     return
 
 
@@ -494,35 +405,3 @@ def find_r1masterfile():
         if afile['title'] == 'AMX RCT.xlsx':
             # Return the file we asked for
                 return afile
-        # TODO: error if there was no file with that name
-
-
-# Old functions that might be handy later
-
-# To add new columns to old files, no longer in use
-# TODO: If there are new columns, add them to old files w/ this function
-def add_new_columns(reactorno, loop):
-    # Return latest file & a list of all files
-    latest_file = list_rfiles_by_date(reactorno)
-    file_list = list_rfiles_by_date(reactorno, False)
-    # Convert latest file to dataframe and get column names
-    df = get_rfile(latest_file[0])
-    allcols = df.columns
-    # Go through the file_list in reverse order (to keep them chronological)
-    for each in reversed(file_list):
-        # Find missing columns and add them
-        df = get_rfile(each[0])
-        cols = df.columns
-        missing_cols = set(allcols) - set(cols)
-        if missing_cols:
-            for each2 in missing_cols:
-                print(df)
-                df[each2] = np.nan
-                tgt_folder_id = find_reactorfolder(reactorno, loop)
-                print('Adding new column(s) to ' + each[2])
-            df.to_csv('temp.csv')
-            each[0].SetContentFile('temp.csv')
-            remove_file('temp.csv')  # Remove temp file w/ first data pt
-            each[0].Upload()  # Upload it
-
-    return

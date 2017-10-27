@@ -30,11 +30,14 @@ def create_classes():
         file_length_days = db.Column(db.Float,
                                      nullable=False,
                                      default=14)
-        loops = db.relationship('StringTable', backref='idx', cascade="all, delete-orphan")
+        loops = db.relationship('LoopTable', backref='idx',
+                                cascade="all, delete-orphan")
+        signals = db.relationship('SignalTable', backref='idx',
+                                  cascade="all, delete-orphan")
 
         def __init__(self, idx=None, descrip=None, controller=None,
                      principle=None, email=None, collect_int_secs=120,
-                     file_length_days=14, loops=[None]):
+                     file_length_days=14, loops=[None], signal=[None]):
             self.idx = idx
             self.descrip = descrip
             self.controller = controller
@@ -42,7 +45,8 @@ def create_classes():
             self.email = email
             self.collect_int_secs = collect_int_secs
             self.file_length_days = file_length_days
-            self.loops = list(map(StringTable, loops))
+            self.loops = list(map(LoopTable, loops))
+            self.signals = list(map(SignalTable, signal))
 
         def __repr__(self):
             return '%r (Description: %r)' % (self.idx, self.descrip)
@@ -67,7 +71,19 @@ def create_classes():
             return str(self.idx)
 
     # Loops database
-    class StringTable(db.Model):
+    class LoopTable(db.Model):
+        string = db.Column(db.String(20), primary_key=True, nullable=True)
+        r_idx = db.Column(db.Integer, db.ForeignKey('reactor.idx'))
+
+        def __init__(self, string=None):
+            self.string = string
+
+        def __repr__(self):
+            return (self.string)
+
+
+    # Signals database
+    class SignalTable(db.Model):
         string = db.Column(db.String(20), primary_key=True, nullable=True)
         r_idx = db.Column(db.Integer, db.ForeignKey('reactor.idx'))
 
@@ -98,10 +114,15 @@ def create_classes():
             if model.idx is not None:
                 get_port = model.controller.debug_port \
                     if config.DEBUG else model.controller.port
-                r_loops = rct.get_loops(model.controller.ip, get_port, model.idx)
+                r_loops = rct.get_loops(model.controller.ip, get_port,
+                                        model.idx)
+                r_signal = rct.get_signal_list(model.controller.ip, get_port,
+                                               model.idx)
             else:
                 r_loops = ['None']
-            model.loops = list(map(StringTable, r_loops))
+                r_signal = ['None']
+            model.loops = list(map(LoopTable, r_loops))
+            model.singals = list(map(SignalTable, r_signal))
 
     class ControllerModelView(ModelView):
         """
@@ -114,5 +135,5 @@ def create_classes():
                              controller_type='Description/Model')
 
     return ControllerModelView, ReactorModelView, Reactor, Controller, \
-           StringTable
+        LoopTable, SignalTable
 

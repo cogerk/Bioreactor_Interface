@@ -2,7 +2,7 @@ import json
 import warnings
 from flask import render_template, request, redirect, flash, url_for
 from flask_admin import Admin
-from bokeh.embed import autoload_server
+from bokeh.embed import server_document
 import config
 import customerrs
 import reactorhandler as rct
@@ -23,8 +23,14 @@ import create_db
 # Setup reactor database for easy query
 
 # Build models
-ControllerModelView, ReactorModelView, Reactor, Controller, StringTable = \
-    models.create_classes()
+ControllerModelView, \
+    ReactorModelView, \
+    Reactor, \
+    Controller, \
+    LoopTable, \
+    SignalTable = models.create_classes()
+
+bokeh_server = 'http://localhost:5006/'
 
 # Find database if present, if not, make new
 try:
@@ -33,7 +39,7 @@ try:
 except sqlalchemy.exc.OperationalError:
     print('Database is incorrectly formatted or empty. '
           'Please populate w/ first reactor')
-    create_db.make_db(Reactor, Controller, StringTable, debug=config.DEBUG)
+    create_db.make_db(Reactor, Controller, debug=config.DEBUG)
     reactors = Reactor.query.order_by(Reactor.idx).all()
     update = False
 
@@ -44,10 +50,12 @@ if update:
             if config.DEBUG else r.controller.port
         try:
             r_loops = rct.get_loops(r.controller.ip, get_port, r.idx)
+            r_signals = rct.get_signal_list(r.controller.ip, get_port, r.idx)
         except customerrs.CannotReachReactor as e:
             warnings.warn(str(e), customerrs.CannotReachReactorWarn)
             continue
-        r.loops = list(map(StringTable, r_loops))
+        r.loops = list(map(LoopTable, r_loops))
+        r.signals = list(map(SignalTable, r_signals))
         db.session.commit()
 
 
@@ -116,10 +124,14 @@ def control_reactor(reactorno):
     except customerrs.CannotReachController as e:
         print(e)
         return redirect(url_for('could_not_find_c', reactorno=reactorno))
-    script_dict = {'Probes': autoload_server(model=None,
-                                             app_path='/R' +
+    script_dict = {'Probes': server_document(url=bokeh_server + 'R' +
                                                       str(reactorno) +
                                                       '_probes')}
+
+    if 'SBR' in loop_list:
+        script_dict['Cycle'] = server_document(url=bokeh_server + 'R' +
+                                                        str(reactorno) +
+                                                        '_cycle')
     revised_loop_list = []
     for loop in loop_list:
         if type(current[loop]) is str:
@@ -131,9 +143,10 @@ def control_reactor(reactorno):
             if act != 'Status':
                 if type(current[loop][loop+'_'+act]) is str:
                     flash(current[loop][loop+'_'+act])
-        appname = '/R' + str(reactorno) + '_'+loop
-        # TODO: Control Loop Graphs
-        script_dict[loop] = None  # autoload_server(model=None, app_path=appname)
+        if loop != 'SBR':
+            appname = '/R' + str(reactorno) + '_'+loop
+            # TODO: Control Loop Graphs
+            script_dict[loop] = None  # autoload_server(model=None, app_path=appname)
     json_current = json.dumps(current)
     if request.method == 'POST':
         latest, loop_list = cmd.get_current(ip, port, reactorno)
@@ -195,8 +208,8 @@ def calconstants(reactorno):
                 appname = '/R' + str(reactorno)+'_' + \
                           joined_sig.replace(' ', '_')
         else:
-            appname = '/R' + str(reactorno)+'_' + sig.replace(' ', '_')
-        script_dict[sig] = autoload_server(model=None, app_path=appname)
+            appname = 'R' + str(reactorno)+'_' + sig.replace(' ', '_')
+        script_dict[sig] = server_document(url=bokeh_server + appname)
     if form.validate_on_submit():
         signal, values = calconst.get_submitted(form)
         statuses = calconst.submit_to_reactor(reactorno,
@@ -233,9 +246,7 @@ def make_ise_manager(reactorno, ise):
     first = ise + ' ISE Parameters'
     del ise_setparam_forms[ise_setparam_forms.index(first)]
     ise_setparam_forms.insert(0, first)
-    graphs = autoload_server(model=None,
-                             app_path=
-                             '/R' + str(reactorno) + '_' +
+    graphs = server_document(url=bokeh_server + 'R' + str(reactorno) + '_' +
                              ise + '_ISE_rel_sigs')
     if request.method == 'POST':
         command_dict = isehd.get_submitted(request.form, current)

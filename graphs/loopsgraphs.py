@@ -39,7 +39,7 @@ def loop_graph_builder(ip, port, reactor, loop):
         """
         # Define and format the figure
         ptitle = 'Reactor #' + str(reactor.idx) + ': ' + reactor.descrip + \
-                 ' Control Status: '+ loop +' Control Loop'
+                 ' Control Status: ' + loop + ' Control Loop'
         p = figure(plot_width=800,
                    x_axis_type='datetime',
                    x_axis_label='Time',
@@ -167,8 +167,8 @@ def loop_graph_builder(ip, port, reactor, loop):
                     trace[act] = p.line([], [],
                                         name=act,
                                         color=line_form_dict[line_act][0],
-                                        line_width=
-                                            line_form_dict[line_act][1]-0.5,
+                                        line_width=line_form_dict
+                                                   [line_act][1] - 0.5,
                                         line_dash='dashed')
                 except KeyError: # Else just draw a dashed line for 2nd axis
                     trace[act] = p.line([], [],
@@ -189,8 +189,6 @@ def loop_graph_builder(ip, port, reactor, loop):
             lgls.append((act, [trace[act]]))
 
         # Label Axis
-
-
         for ax in p.yaxis:
             ax.axis_label = axis_names[ax.y_range_name]
             if ax.y_range_name == 'default':
@@ -217,6 +215,7 @@ def loop_graph_builder(ip, port, reactor, loop):
         stream_speed = 500
         df = {}
         length_dt = 30
+
         # Periodic Callback Function
         def stream():
             # Initialize time slider vals

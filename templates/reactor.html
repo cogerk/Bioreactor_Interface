@@ -73,19 +73,36 @@
             {{ graphs['Probes']|safe }}
         </div>
     </div>
+       <!-- Here is the SBR clock and control form -->
+   {% if 'SBR' in all_loops %}
+    <div class="row">
+        <div id="cycle_clock" class="col highpadding">
+            {{ graphs['Cycle']|safe }}
+        </div>
+        <div id="SBR" class="col control-loop highpadding">
+                {% for c_action in all_actions %}
+                    {% if c_action != 'Status'  %}
+                        {{ render_control_fields(c_action,'SBR',loop_form_dict['SBR'][c_action]) }}
+                    {% endif %}
+                {% endfor %}
+        </div>
+    </div>
+    {% endif %}
     <!-- Every Control Loop (i.e. pH, DO, SBR) gets it's own section -->
     {% for c_loop in all_loops  %}
-        {{ loop.cycle('<div class="row">','')|safe }}
-            <div id="{{c_loop}}" class="col control-loop highpadding">
-            {% for c_action in all_actions %}
-                {% if c_action != 'Status'  %}
-                    {{ render_control_fields(c_action,c_loop,loop_form_dict[c_loop][c_action]) }}
-                {% endif %}
-            {% endfor %}
-            </div>
-        {{ loop.cycle('','</div>')|safe }}
-        {% if loop.last and not loop.first and loop.index % 2 != 0 %}
-            </div>
+        {% if c_loop != 'SBR' %}
+            {{ loop.cycle('<div class="row">','')|safe }}
+                <div id="{{c_loop}}" class="col control-loop highpadding">
+                {% for c_action in all_actions %}
+                    {% if c_action != 'Status'  %}
+                        {{ render_control_fields(c_action,c_loop,loop_form_dict[c_loop][c_action]) }}
+                    {% endif %}
+                {% endfor %}
+                </div>
+            {{ loop.cycle('','</div>')|safe }}
+            {% if loop.last and not loop.first and loop.index % 2 != 0 %}
+                </div>
+            {% endif %}
         {% endif %}
     {% endfor %}
     </div>

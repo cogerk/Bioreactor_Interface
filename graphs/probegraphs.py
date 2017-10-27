@@ -4,26 +4,20 @@ Written 3/20/17
 By: Kathryn Cogert
 """
 import warnings
-from itertools import compress, groupby
+from itertools import groupby
 from operator import itemgetter
 from bokeh.plotting import figure
-from bokeh.charts import Donut
 from bokeh.models.widgets import DataTable, TableColumn
 from bokeh.models.widgets import Slider, CheckboxButtonGroup
 from bokeh.models import Legend, ColumnDataSource
 from bokeh.layouts import widgetbox, layout
 from bokeh.util.warnings import BokehUserWarning
 import numpy as np
-import pandas as pd
-from reactorhandler import get_probe_snap
+from reactorhandler import get_probe_snap, get_phases
 import graphs.plotmodels as mods
 
-# TODO: Cycle Clock?
-# TODO: Elapsed cycle time and other parameters
-# TODO: Graph is running in background
 
-
-def probe_graph_builder(ip, port, reactor, signals, phases):
+def probe_graph_builder(ip, port, reactor, signals):
     """
     Builds a function of all reactor signals to serve in the bokeh server
     :param ip: str, the cRIO IP address
@@ -51,24 +45,15 @@ def probe_graph_builder(ip, port, reactor, signals, phases):
 
         # Remove non-linear actuator signals, they aren't probes
         rctprobes = [r for r in rctprobes if 'Flowrate' not in r]
+        # TODO: CRIO Replace MFC with Flowrate
+        # TODO: User will need flowrate or VFD in signal name to make sure it doesn't get included in this graph
         rctprobes = [r for r in rctprobes if 'VFD' not in r]
-        # TODO: Resolve this another way
         try:
             rctprobes.remove('Reactor Status')
         except ValueError:
             pass
-        # Generate a unique line format for each probe & phase
+        # Generate a unique line format for each probe
         line_form_dict = mods.assign_line_format(rctprobes)
-        phase_ls = list(list(zip(*phases))[0])
-
-        phase_form_dict = mods.assign_line_format(phase_ls)
-        print(phase_form_dict)
-        df = pd.DataFrame.from_items(phases,
-                                     orient='index',
-                                     columns=['Length'])
-
-        print(df)
-        cycle = Donut(df)
         # Initiate data dictionaries, legend label list, and line dictionary
         ss_calcs = {'Analytic': ['Average',
                                  'Standard Deviation',
@@ -102,7 +87,7 @@ def probe_graph_builder(ip, port, reactor, signals, phases):
             ds[probe] = trace[probe].data_source
             ds[probe].data['x'] = []
             ds[probe].data['y'] = []
-
+            # TODO: No Command Submitted?
             # Add probe to legend
             if units[probe] is not '':
                 probe_label = probe + ', ' + units[probe]
@@ -115,6 +100,12 @@ def probe_graph_builder(ip, port, reactor, signals, phases):
             # Define columns in datatable
             ss_cols.append(TableColumn(field=probe,
                                        title=probe))
+
+        # Get phases & generate unique format for each
+        phases = get_phases(ip, port, reactor.idx, False)
+        phase_ls = list(list(zip(*phases))[0])
+        phase_form_dict = mods.assign_line_format(phase_ls)
+
         # Define phase indicators
         for phase in phase_ls:
             alpha_val = ((phase_form_dict[phase][1] - 2) / 0.5) * .2 + 0.1
@@ -153,7 +144,7 @@ def probe_graph_builder(ip, port, reactor, signals, phases):
         ss_data = ColumnDataSource(ss_calcs)
         data_table = DataTable(source=ss_data,
                                columns=ss_cols,
-                               width=p.plot_width+100,
+                               width=p.plot_width,
                                height=200,
                                row_headers=False)
         # Create widgets
@@ -225,6 +216,7 @@ def probe_graph_builder(ip, port, reactor, signals, phases):
                 df['Reactor Status'] = [new_data['Reactor Status']]
             else:
                 # if window size is same or greater than last time
+                # TODO: Debug window size slider
                 if length_dt >= last_dt:
                     # Add new timestamp and value to end of frame
                     df['Timestamp'].append(new_data['Timestamp'])
@@ -316,12 +308,13 @@ def probe_graph_builder(ip, port, reactor, signals, phases):
                     stdev = None
                 ss_data.data[sig] = [avg, stdev, diff]
             ls = df['Reactor Status']
+            # TODO: Remove units from phase ls
             for phase in phase_ls:
                 #TODO: Add this functionality to loopsgraph
                 if phase == 'Manual Mode':
                     pstr = phase
                 else:
-                    pstr = 'SBR Mode: ' + phase
+                    pstr = 'SBR Control On: ' + phase
                 idxs = [idx for idx, x in enumerate(ls) if x == pstr]
                 ranges = []
                 for k, g in groupby(enumerate(idxs), lambda x:x[0]-x[1]):
@@ -361,11 +354,10 @@ def probe_graph_builder(ip, port, reactor, signals, phases):
         inputs = widgetbox(window_size, diff_size)
         plot_btns = widgetbox(plots_on)
         table = widgetbox(data_table)
-        doc.add_root(layout([[p, cycle],
-                             [plot_btns],
-                             [inputs],
-                             [table]],
-                            sizing_mode='scale_width'))
+        doc.add_root(layout([[p],
+                            [plot_btns],
+                            [inputs],
+                            [table]], sizing_mode='scale_width'))
         # Add a periodic callback to be run as defined by stream speed
         doc.add_periodic_callback(stream, stream_speed)
 

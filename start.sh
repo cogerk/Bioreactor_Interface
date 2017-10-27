@@ -1,6 +1,7 @@
 # start.sh
 
-python main.py && fg
+python bokehservermanager.py &
+python run.py && fg
 
 # Util commands:
 #   $ jobs:

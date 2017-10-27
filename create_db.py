@@ -9,10 +9,10 @@ Mar 1 2017
 #import os.path
 #from config import SQLALCHEMY_DATABASE_URI
 from __init__ import db
-from reactorhandler import get_loops
+from reactorhandler import get_loops, get_signal_list
 
 
-def make_db(Reactor, Controller, StringTable, debug=False):
+def make_db(Reactor, Controller, debug=False):
     reactorno = 1#int(input('Reactor #: '))
     controllerno = 1 #int(input('cRIO #: '))
     ip = '172.28.236.61'#input('cRIO IP: ')
@@ -27,11 +27,12 @@ def make_db(Reactor, Controller, StringTable, debug=False):
 
     get_port = debug_port if debug else port
     loops = get_loops(ip, get_port, reactorno)
+    signals = get_signal_list(ip, get_port, reactorno)
     db.create_all()
     first_controller = Controller(controllerno, ip, port, debug_port,
                                   controller_type)
     first_rctr = Reactor(reactorno, descrip, first_controller, name, email,
-                         collect_int, file_length, loops)
+                         collect_int, file_length, loops, signals)
     db.session.add(first_controller)
     db.session.add(first_rctr)
     db.session.commit()

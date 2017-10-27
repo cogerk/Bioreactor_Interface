@@ -236,7 +236,7 @@ def get_current(ip, port, reactorno):
 
 def get_loop_snap(ip, port, reactorno, loop):
     """
-
+    Get a snapshot of the status of a given loop
     :param ip:
     :param port:
     :param reactorno:
@@ -276,7 +276,7 @@ def get_loop_snap(ip, port, reactorno, loop):
         elif '_Switch' in each:
             data['Manual Control On'] = not bool(loop_status[each])
         elif '_MFC' in each:
-            # Important! Set point and measured MFC vals have same units
+            # TODO: Important! Set point and measured MFC vals have same units
             line = each.replace('_MFC', ' MFC Flowrate')
             for each2 in loop_status[each]:
                 if 'Value' in each2[0]:
@@ -306,7 +306,11 @@ def get_loop_snap(ip, port, reactorno, loop):
                 elif 'Tolerance' in each2[0]:
                     line = loop + ' ' + each2[0]
                     data[line] = each2[1]
-        elif 'Timestamp' == each:
-            # Convert timestamp to python timestamp
-            data['Timestamp'] = dateutil.parser.parse(loop_status[each])
+        elif '_Outputs' in each:
+            for each2 in loop_status[each]:
+                if 'Timestamp' == each2[0]:
+                    # Convert timestamp to python timestamp
+                    data['Timestamp'] = dateutil.parser.parse(each2[1])
+                else:
+                    data[each2[0]] = each2[1]
     return data, track, acts, bool_acts

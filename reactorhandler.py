@@ -176,7 +176,7 @@ def get_other_constants(ip, port, crio, reactorno):
     return other
 
 
-def get_phases(ip, port, reactorno):
+def get_phases(ip, port, reactorno, include_units=True):
     """
     Given a reactor get list of SBR phases.
     :param ip: str, the cRIO IP address
@@ -216,6 +216,9 @@ def get_phases(ip, port, reactorno):
                             units = ', ' + each[0].text.split(', ')[1]
                         except IndexError:
                             units = ', '
-                sbr_phases.append((phase_name + units, [time]))
+                if include_units:
+                    sbr_phases.append((phase_name + units, [time]))
+                else:
+                    sbr_phases.append((phase_name, [time]))
             break
     return sbr_phases

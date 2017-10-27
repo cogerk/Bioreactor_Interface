@@ -11,7 +11,6 @@ import data.googledriveutils as gdu
 # TODO: If timestamp is not current
 # TODO: Does this work for multiple reactors?
 
-
 def start_data(reactor):
     """
     Saves data in google drive.
@@ -30,14 +29,15 @@ def start_data(reactor):
 
     def data_collect():
         # Takes data from cRIO and puts it in google drive
-        print('Querying Reactor #' + str(reactor.idx))
+        print('New Data Collect Loop')
         loops = reactor.loops
-        gdu.write_to_reactordrive(no,
-                                  ip,
-                                  port,
-                                  loops,
-                                  collect_int,
-                                  file_length)
-        threading.Timer(collect_int, data_collect).start()
+        gdu.write_to_reactordrive(no=no,
+                                  ip=ip,
+                                  port=port,
+                                  loops=loops,
+                                  collect_int=collect_int/60,
+                                  file_length=file_length,
+                                  buffer_size=2)
+        threading.Timer(collect_int/60, data_collect).start()
 
     data_collect()

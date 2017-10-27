@@ -3,6 +3,7 @@ Supporting utility functions for remote control panel
 Written By: Kathryn Cogert
 Jan 25 2017
 """
+import numpy as np
 import http.client
 import urllib.error
 import urllib.request
@@ -59,6 +60,18 @@ TRI_ACTS = ['Steady State?', 'SteadyState?']
 
 # >Utility Functions
 
+# https://stackoverflow.com/questions/20924085/python-conversion-between-coordinates
+def cart2pol(x, y):
+    rho = np.sqrt(x**2 + y**2)
+    phi = np.arctan2(y, x)
+    return(rho, phi)
+
+
+def pol2cart(rho, phi):
+    x = rho * np.cos(phi)
+    y = rho * np.sin(phi)
+    return(x, y)
+
 
 def convert_to_localvar(labelstr):
     """
@@ -114,7 +127,7 @@ def build_url(ip, port, reactorno, vi_to_run, command=''):
     """
     r_name = 'R'+str(reactorno)
     url = 'http://'+ip+':'+str(port)+'/'+r_name+'/'+vi_to_run+command
-    print(url)
+    #print(url)
     return url
 
 
@@ -146,4 +159,4 @@ def call_reactor(ip, port, reactorno, url, status=False):
     except http.client.RemoteDisconnected:
         raise customerrs.CannotReachReactor(
             'While attempting to access ' + url +
-            'cRIO disconnected during query IP:' + str(ip) + ':' + str(port))
+            ' cRIO disconnected during query IP:' + str(ip) + ':' + str(port))

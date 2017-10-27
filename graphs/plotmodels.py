@@ -3,10 +3,13 @@ Models and formatters for bokeh graphs
 Written By: Kathryn Cogert
 Mar 20 2017
 """
+import numpy
 from copy import copy
+from bokeh.plotting import figure
 from bokeh.models.formatters import DatetimeTickFormatter
-from bokeh.models import Paragraph, DataRange1d, LinearAxis
+from bokeh.models import Paragraph, DataRange1d, LinearAxis, ColumnDataSource, LabelSet
 from bokeh.palettes import Dark2_6 as Palette
+import utils
 # TODO: What is range for ORP Probe?
 
 # Assign plot colors to common things
@@ -17,7 +20,8 @@ default_form_dict['DO'] = (Palette[1], default_line_width)
 default_form_dict['ORP'] = (Palette[2], default_line_width)
 default_form_dict['NH4'] = (Palette[3], default_line_width)
 default_form_dict['NH4 ISE'] = (Palette[3], default_line_width)
-#TODO: WHy doesn't this work?
+
+
 def assign_line_format(sigs):
     form_dict = {}
     counts = copy(Palette)
