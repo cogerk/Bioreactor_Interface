@@ -1,11 +1,10 @@
 # Created by .ignore support plugin (hsz.mobi)
 /secretkey.txt
 /reactors.db
-/graphs/examples/
-/data/client_secrets.json
-/data/credentials.json
-/data/settings.yaml
-/data/mycreds.txt
-/data/temp.csv
+graphs/examples/
+data/client_secrets.json
+data/credentials.json
+data/settings.yaml
+data/temp.csv
 /temp.csv
 /test.py

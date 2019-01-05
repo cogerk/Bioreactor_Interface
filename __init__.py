@@ -15,20 +15,22 @@ First Modified On: Feb 28 2017
 # TODO: Add email alarms
 # TODO: Build validators
 
-
+import os
+import hashlib
+import random
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 import customerrs as cust
 
 if 'app' not in globals():  # For launching Bokeh: If app is already running
     app = Flask(__name__)
-    try:
-        with open('secretkey.txt') as myfile:
-            app_secret_key = myfile.readlines()
-    except cust.MissingKey:
-        pass
+    if not os.path.exists('secretkey.txt'):
+        secretKey = hashlib.sha224(str(random.random()).encode('utf-8')).hexdigest()
+        open('secretkey.txt', 'wt').write(secretKey)
+    else:
+        secretKey = open('secretkey.txt', 'rt').read()
 
-    app_secret_key = app_secret_key[0]
+    app_secret_key = secretKey[0]
     app.secret_key = app_secret_key
     app.config.from_object('config')
     db = SQLAlchemy(app)

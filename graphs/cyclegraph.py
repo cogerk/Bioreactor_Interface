@@ -16,7 +16,6 @@ def cycle_graph_builder(r, ip, port, rno):
     # Mak a list of phases and assign unique formates
     phase_ls = list(list(zip(*phases))[0])
     phase_form_dict = mods.assign_line_format(phase_ls)
-
     # Make list of phase colors, phase alphas, and delete 0 length phases
     phase_color_ls = []
     phase_len = []
@@ -59,7 +58,6 @@ def cycle_graph_builder(r, ip, port, rno):
                                 text='names', angle='angles',
                                 background_fill_color='colors',
                                 source=source)
-
         # a color for each pie piece
         colors = phase_color_ls
         cycle = figure(x_range=(-r-0.05, r + 0.05),
@@ -68,7 +66,6 @@ def cycle_graph_builder(r, ip, port, rno):
                        plot_height=500,
                        title='Cycle Clock',
                        )
-
         # Pie chart wedges
         cycle.wedge(x=0, y=0, radius=r,
                     start_angle=starts,
@@ -81,7 +78,6 @@ def cycle_graph_builder(r, ip, port, rno):
         phase_status_ds = cycle_line.data_source
         phase_status_ds.data['x'] = [0, 0]
         phase_status_ds.data['y'] = [0, 0]
-
         # Make extra junk invisible
         cycle.xaxis.visible = False
         cycle.yaxis.visible = False
@@ -90,7 +86,6 @@ def cycle_graph_builder(r, ip, port, rno):
         cycle.outline_line_alpha = 0
         cycle.toolbar.logo = None
         cycle.toolbar_location = None
-
         # Format Title
         cycle.title.text_font_size = '20pt'
         cycle.title.align = 'center'
@@ -98,7 +93,6 @@ def cycle_graph_builder(r, ip, port, rno):
         # Callback function for streaming
         stream_speed = 500
         denom = cumsum_phase_len[-1]  # This is the denominator
-
         def stream():
             # Determine fraction through cycle
             data, l, a, bool_acts = get_loop_snap(ip, port, rno, 'SBR')
@@ -110,13 +104,13 @@ def cycle_graph_builder(r, ip, port, rno):
                     fract = numer/denom
                 elif 'Phase Time' in each:
                     phase_label.text = each + ': ' + str(round(data[each], 2))
-
             # Determine coordinates of clock hand
             theta = fract*2*numpy.pi + numpy.pi/2
             x, y = utils.pol2cart(r, theta)
             xs = [0, x]
             ys = [0, y]
             phase_status_ds.data['x'], phase_status_ds.data['y'] = xs, ys
+
         # Add form to document
         cycle.add_layout(cycle_labels)
         doc.add_root(layout([[cycle],

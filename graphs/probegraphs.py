@@ -36,7 +36,7 @@ def probe_graph_builder(ip, port, reactor, signals):
         ptitle = 'Reactor #' + str(reactor.idx) + ' Probes: ' + reactor.descrip
         p = figure(plot_width=800,
                    x_axis_type='datetime',
-                   plot_height=500,
+                   plot_height=400,
                    title=ptitle)
         p = mods.format_plot(p, True)
         axis_names = {'default': 'pH/Concentration, mg/L', '2nd': 'ORP, mV'}
@@ -145,8 +145,7 @@ def probe_graph_builder(ip, port, reactor, signals):
         data_table = DataTable(source=ss_data,
                                columns=ss_cols,
                                width=p.plot_width,
-                               height=200,
-                               row_headers=False)
+                               height=200)
         # Create widgets
         window_size = Slider(title="Time Frame, secs",
                              value=600,
